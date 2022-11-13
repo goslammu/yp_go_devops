@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
@@ -15,11 +16,18 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
+var (
+	errStorageNotDefined = errors.New("server storage is not defined")
+	errNotInitialized    = errors.New("server is not initialized")
+)
+
 // server struct implements full value server for metric storaging and getting them from clients.
 type server struct {
-	syncUpload chan struct{}
-	storage    metric.MetricStorage
-	config     serverConfig
+	storage     metric.MetricStorage
+	syncUpload  chan struct{}
+	s           *http.Server
+	config      serverConfig
+	initialized bool
 }
 
 // Server constructor.
@@ -30,7 +38,9 @@ func NewServer(config serverConfig) *server {
 }
 
 // Immediatly turns server on.
-func (srv *server) Run() error {
+func (srv *server) Init() error {
+	srv.syncUpload = make(chan struct{})
+
 	if srv.config.DatabaseAddress != "" {
 		dbstorage, err := pgxstorage.New(srv.config.DatabaseAddress, srv.config.InitialDatabaseDrop)
 		if err != nil {
@@ -66,8 +76,6 @@ func (srv *server) Run() error {
 				}
 			}()
 		} else {
-			srv.syncUpload = make(chan struct{})
-
 			go func(c chan struct{}) {
 				for {
 					<-c
@@ -82,7 +90,7 @@ func (srv *server) Run() error {
 		srv.storage = filestorage
 
 	} else {
-		return errors.New("server storage IS NOT DEFINED")
+		return errStorageNotDefined
 	}
 
 	log.Println("server CONFIG: ", srv.config)
@@ -107,5 +115,28 @@ func (srv *server) Run() error {
 		r.Get("/", srv.handlerCheckConnection)
 	})
 
-	return http.ListenAndServe(srv.config.ServerAddress, mainRouter)
+	srv.s = &http.Server{
+		Addr:    srv.config.ServerAddress,
+		Handler: mainRouter,
+	}
+
+	srv.initialized = true
+
+	return nil
+}
+
+func (srv *server) Run() error {
+	if srv.initialized {
+		return srv.s.ListenAndServe()
+	}
+
+	return errNotInitialized
+}
+
+func (srv *server) Shutdown() error {
+	if srv.syncUpload != nil {
+		close(srv.syncUpload)
+	}
+
+	return srv.s.Shutdown(context.Background())
 }

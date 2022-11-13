@@ -48,6 +48,7 @@ func (m *Metric) UpdateHash(key string) error {
 	}
 
 	var deltaPart, valuePart string
+
 	if m.Delta != nil {
 		deltaPart = fmt.Sprintf("%s:%s:%d", m.ID, m.MType, *m.Delta)
 	}
@@ -60,6 +61,8 @@ func (m *Metric) UpdateHash(key string) error {
 	if _, err := h.Write([]byte(deltaPart + valuePart)); err != nil {
 		return err
 	}
+
 	m.Hash = hex.EncodeToString(h.Sum(nil))
+
 	return nil
 }

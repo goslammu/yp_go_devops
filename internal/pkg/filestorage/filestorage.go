@@ -145,12 +145,16 @@ func (st *fileStorage) DownloadStorage() error {
 	if err != nil {
 		return err
 	}
+
 	b := bufio.NewScanner(file)
+
 	for b.Scan() {
 		m := metric.Metric{}
+
 		if err := json.Unmarshal(b.Bytes(), &m); err != nil {
 			return err
 		}
+
 		if err := st.updateMetric(&m); err != nil {
 			return err
 		}

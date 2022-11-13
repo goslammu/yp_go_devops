@@ -136,15 +136,22 @@ func Test_UpdateMetric(t *testing.T) {
 			},
 			ExpectedError: metric.ErrCannotUpdateInvalidFormat,
 		},
+		{
+			Name:          "empty metric struct",
+			Input:         nil,
+			ExpectedError: metric.ErrCannotUpdateInvalidFormat,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			assert.ErrorIs(t, ms.UpdateMetric(tt.Input), tt.ExpectedError)
 
-			if tt.Input.ID != "" {
-				assert.Equal(t, tt.ExpectedDelta, *ms.metrics[tt.Input.ID].Delta)
-				assert.Equal(t, tt.ExpectedValue, *ms.metrics[tt.Input.ID].Value)
+			if tt.Input != nil {
+				if tt.Input.ID != "" {
+					assert.Equal(t, tt.ExpectedDelta, *ms.metrics[tt.Input.ID].Delta)
+					assert.Equal(t, tt.ExpectedValue, *ms.metrics[tt.Input.ID].Value)
+				}
 			}
 		})
 	}
@@ -205,10 +212,12 @@ func Test_LoadStorage(t *testing.T) {
 	}
 
 	assert.NoError(t, msUp.UploadStorage())
-
 	assert.NoError(t, msDown.DownloadStorage())
 
 	assert.Equal(t, msUp.metrics, msDown.metrics)
+
+	assert.Error(t, New("").UploadStorage())
+	assert.Error(t, New("").DownloadStorage())
 
 	if er := os.Remove(path); er != nil {
 		return

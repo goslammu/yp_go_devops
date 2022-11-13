@@ -43,7 +43,15 @@ func main() {
 
 	srv := server.NewServer(config)
 
+	if err := srv.Init(); err != nil {
+		panic(err)
+	}
+
 	if err := srv.Run(); err != nil {
+		panic(err)
+	}
+
+	if err := srv.Shutdown(); err != nil {
 		panic(err)
 	}
 }

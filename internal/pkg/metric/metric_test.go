@@ -51,6 +51,17 @@ func Test_UpdateHash(t *testing.T) {
 			ExpectedHash: "ba5db309e6bc23446f4c4fe1c08e4e8f28a1a3f8e3218b46d28bb169a899c960",
 			Key:          "key3",
 		},
+		{
+			Name: "empty key",
+			Metric: &Metric{
+				ID:    "id",
+				MType: "type",
+				Delta: &delta1,
+				Value: &value2,
+			},
+			ExpectedHash: "",
+			Key:          "",
+		},
 	}
 
 	for _, tt := range tests {
