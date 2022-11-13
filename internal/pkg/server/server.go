@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -35,11 +36,13 @@ func (srv *server) Run() error {
 		if err != nil {
 			return err
 		}
+
 		defer func() {
 			if er := dbstorage.Close(); er != nil {
 				log.Println(er.Error())
 			}
 		}()
+
 		srv.storage = dbstorage
 
 	} else if srv.config.FileDestination != "" {
@@ -50,11 +53,13 @@ func (srv *server) Run() error {
 				log.Println(err)
 			}
 		}
+
 		if srv.config.StoreInterval != 0 {
 			go func() {
 				uploadTimer := time.NewTicker(srv.config.StoreInterval)
 				for {
 					<-uploadTimer.C
+
 					if err := filestorage.UploadStorage(); err != nil {
 						log.Println(err)
 					}
@@ -62,18 +67,22 @@ func (srv *server) Run() error {
 			}()
 		} else {
 			srv.syncUpload = make(chan struct{})
+
 			go func(c chan struct{}) {
 				for {
 					<-c
+
 					if err := filestorage.UploadStorage(); err != nil {
 						log.Println(err)
 					}
 				}
 			}(srv.syncUpload)
 		}
+
 		srv.storage = filestorage
+
 	} else {
-		panic("server storage IS NOT DEFINED")
+		return errors.New("server storage IS NOT DEFINED")
 	}
 
 	log.Println("server CONFIG: ", srv.config)

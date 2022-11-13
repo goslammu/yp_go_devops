@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 	"text/template"
 
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
-	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi"
 )
 
 var (
@@ -146,7 +145,6 @@ func (srv *server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 // Updates individual metric kept in URL in format "/type/id/value".
 func (srv *server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
-	fmt.Println(mType)
 	if err := checkTypeSupport(mType); err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusNotImplemented)
@@ -308,11 +306,12 @@ func (srv *server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
 
 // Checks if metric type is supported by server or not.
 func checkTypeSupport(mType string) error {
-	for i := range supportedTypes {
-		if mType == supportedTypes[i] {
+	for _, v := range supportedTypes {
+		if mType == v {
 			return nil
 		}
 	}
+
 	return errUnsupportedType
 }
 

@@ -152,17 +152,20 @@ func (st *pgxStorage) UpdateMetric(m *metric.Metric) error {
 
 // Updates metrics collected in input batch by valuable fields: overrides Values and increments Deltas.
 func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
+	success := false
+
 	tx, err := st.DB.Begin()
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		if er := tx.Rollback(); er != nil {
-			log.Println(er.Error())
-			return
+		if !success {
+			if er := tx.Rollback(); er != nil {
+				log.Println(er.Error())
+				return
+			}
 		}
-
 	}()
 
 	txStUpdateMetric, err := tx.Prepare(stUpdateMetric)
@@ -191,6 +194,8 @@ func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
 	if er := txStUpdateMetric.Close(); er != nil {
 		return er
 	}
+
+	success = true
 
 	return nil
 }

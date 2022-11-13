@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-chi/chi v1.5.4
-	github.com/go-chi/chi/v5 v5.0.7
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/kisielk/errcheck v1.6.2
 	github.com/shirou/gopsutil/v3 v3.22.6
