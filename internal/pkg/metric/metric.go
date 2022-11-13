@@ -15,7 +15,7 @@ var (
 )
 
 // General interface of metric storages used by Agent and Server.
-type MStorage interface {
+type MetricStorage interface {
 	// Returns existing metric by it's name.
 	GetMetric(id string) (*Metric, error)
 

@@ -11,7 +11,7 @@ import (
 )
 
 func Test_handlerGetMetric(t *testing.T) {
-	srv := Server{}
+	srv := server{}
 
 	t.Run("unknown type", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/value/unknownType/name", nil)
@@ -28,7 +28,7 @@ func Test_handlerGetMetric(t *testing.T) {
 }
 
 func Test_handlerGetMetricJSON(t *testing.T) {
-	srv := Server{}
+	srv := server{}
 
 	t.Run("empty json", func(t *testing.T) {
 		req, err := http.NewRequest("POST", "/value", bytes.NewBuffer(nil))
@@ -81,7 +81,7 @@ func Test_handlerGetMetricJSON(t *testing.T) {
 }
 
 func Test_handlerUpdateBatch(t *testing.T) {
-	srv := Server{}
+	srv := server{}
 
 	t.Run("empty batch json", func(t *testing.T) {
 		req, err := http.NewRequest("POST", "/updates", bytes.NewBuffer(nil))
@@ -173,7 +173,7 @@ func Test_checkTypeSupport(t *testing.T) {
 		{
 			Name:          "unknown type",
 			Input:         "type",
-			ExpectedError: ErrUnsupportedType,
+			ExpectedError: errUnsupportedType,
 		},
 	}
 
@@ -185,8 +185,8 @@ func Test_checkTypeSupport(t *testing.T) {
 }
 
 func Test_checkHash(t *testing.T) {
-	srv := Server{
-		Cfg: Config{
+	srv := server{
+		config: serverConfig{
 			HashKey: "key",
 		},
 	}
@@ -212,7 +212,7 @@ func Test_checkHash(t *testing.T) {
 		Value: &value,
 		Delta: &delta,
 	}
-	err := mGoodHash.UpdateHash(srv.Cfg.HashKey)
+	err := mGoodHash.UpdateHash(srv.config.HashKey)
 	assert.NoError(t, err)
 
 	tests := []struct {
@@ -231,13 +231,13 @@ func Test_checkHash(t *testing.T) {
 			Name:          "bad hash",
 			Input:         mBadHash,
 			ExpectedHash:  "",
-			ExpectedError: ErrInconsistentHashes,
+			ExpectedError: errInconsistentHashes,
 		},
 		{
 			Name:          "empty hash",
 			Input:         mEmptyHash,
 			ExpectedHash:  "",
-			ExpectedError: ErrInconsistentHashes,
+			ExpectedError: errInconsistentHashes,
 		},
 	}
 

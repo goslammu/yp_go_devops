@@ -27,8 +27,8 @@ func init() {
 func Benchmark_filestorageUpdateMetric(b *testing.B) {
 	storage := filestorage.New("")
 
-	srv := Server{
-		Storage: storage,
+	srv := server{
+		storage: storage,
 	}
 
 	b.ResetTimer()
@@ -45,15 +45,15 @@ func Benchmark_filestorageUpdateMetric(b *testing.B) {
 
 		b.StartTimer()
 
-		assert.NoError(b, srv.Storage.UpdateMetric(m))
+		assert.NoError(b, srv.storage.UpdateMetric(m))
 	}
 }
 
 func Benchmark_filestorageUpdateBatch(b *testing.B) {
 	storage := filestorage.New("")
 
-	srv := Server{
-		Storage: storage,
+	srv := server{
+		storage: storage,
 	}
 
 	b.ResetTimer()
@@ -75,7 +75,7 @@ func Benchmark_filestorageUpdateBatch(b *testing.B) {
 
 		b.StartTimer()
 
-		assert.NoError(b, srv.Storage.UpdateBatch(batch))
+		assert.NoError(b, srv.storage.UpdateBatch(batch))
 	}
 }
 
@@ -86,8 +86,8 @@ func Benchmark_pgxstorageUpdateMetric(b *testing.B) {
 		b.SkipNow()
 	}
 
-	srv := Server{
-		Storage: storage,
+	srv := server{
+		storage: storage,
 	}
 
 	b.ResetTimer()
@@ -104,7 +104,7 @@ func Benchmark_pgxstorageUpdateMetric(b *testing.B) {
 
 		b.StartTimer()
 
-		assert.NoError(b, srv.Storage.UpdateMetric(m))
+		assert.NoError(b, srv.storage.UpdateMetric(m))
 	}
 }
 
@@ -115,8 +115,8 @@ func Benchmark_pgxstorageUpdateBatch(b *testing.B) {
 		b.SkipNow()
 	}
 
-	srv := Server{
-		Storage: storage,
+	srv := server{
+		storage: storage,
 	}
 
 	b.ResetTimer()
@@ -138,6 +138,6 @@ func Benchmark_pgxstorageUpdateBatch(b *testing.B) {
 
 		b.StartTimer()
 
-		assert.NoError(b, srv.Storage.UpdateBatch(batch))
+		assert.NoError(b, srv.storage.UpdateBatch(batch))
 	}
 }

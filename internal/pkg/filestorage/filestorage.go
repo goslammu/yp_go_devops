@@ -11,22 +11,22 @@ import (
 )
 
 // Realization of metrics storage based on map. Is concurrent-safe due to Mutex.
-type MetricStorage struct {
+type fileStorage struct {
 	metrics  map[string]*metric.Metric
 	FilePath string
 	sync.RWMutex
 }
 
 // Constructor.
-func New(filePath string) *MetricStorage {
-	return &MetricStorage{
+func New(filePath string) *fileStorage {
+	return &fileStorage{
 		metrics:  map[string]*metric.Metric{},
 		FilePath: filePath,
 	}
 }
 
 // Returns existing metric by it's name.
-func (st *MetricStorage) GetMetric(name string) (*metric.Metric, error) {
+func (st *fileStorage) GetMetric(name string) (*metric.Metric, error) {
 	st.Lock()
 	defer st.Unlock()
 
@@ -37,7 +37,7 @@ func (st *MetricStorage) GetMetric(name string) (*metric.Metric, error) {
 }
 
 // Returns all storaged metrics in slice.
-func (st *MetricStorage) GetBatch() ([]*metric.Metric, error) {
+func (st *fileStorage) GetBatch() ([]*metric.Metric, error) {
 	st.Lock()
 	defer st.Unlock()
 
@@ -51,14 +51,14 @@ func (st *MetricStorage) GetBatch() ([]*metric.Metric, error) {
 }
 
 // Updates metric valuable fields: overrides Value and increments Delta.
-func (st *MetricStorage) UpdateMetric(m *metric.Metric) error {
+func (st *fileStorage) UpdateMetric(m *metric.Metric) error {
 	st.Lock()
 	defer st.Unlock()
 
 	return st.updateMetric(m)
 }
 
-func (st *MetricStorage) updateMetric(m *metric.Metric) error {
+func (st *fileStorage) updateMetric(m *metric.Metric) error {
 	if m == nil {
 		return metric.ErrCannotUpdateInvalidFormat
 	}
@@ -80,7 +80,7 @@ func (st *MetricStorage) updateMetric(m *metric.Metric) error {
 }
 
 // Updates metrics collected in input batch by valuable fields: overrides Values and increments Deltas.
-func (st *MetricStorage) UpdateBatch(batch []*metric.Metric) error {
+func (st *fileStorage) UpdateBatch(batch []*metric.Metric) error {
 	st.Lock()
 	defer st.Unlock()
 
@@ -93,7 +93,7 @@ func (st *MetricStorage) UpdateBatch(batch []*metric.Metric) error {
 }
 
 // Checks if storage is initialized.
-func (st *MetricStorage) AccessCheck() error {
+func (st *fileStorage) AccessCheck() error {
 	st.Lock()
 	defer st.Unlock()
 
@@ -104,7 +104,7 @@ func (st *MetricStorage) AccessCheck() error {
 }
 
 // Uploads storage to json-file on path defined in constructor.
-func (st *MetricStorage) UploadStorage() error {
+func (st *fileStorage) UploadStorage() error {
 	var err error
 
 	st.Lock()
@@ -137,7 +137,7 @@ func (st *MetricStorage) UploadStorage() error {
 }
 
 // Downlod storage from json-file on path defined in constructor.
-func (st *MetricStorage) DownloadStorage() error {
+func (st *fileStorage) DownloadStorage() error {
 	st.Lock()
 	defer st.Unlock()
 

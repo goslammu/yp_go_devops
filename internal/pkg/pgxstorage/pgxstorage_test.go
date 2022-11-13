@@ -25,7 +25,7 @@ func init() {
 }
 
 func Test_New(t *testing.T) {
-	var ms *MetricStorage
+	var ms *pgxStorage
 	var err error
 
 	id := "id"

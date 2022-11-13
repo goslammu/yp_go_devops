@@ -1,104 +1,82 @@
 package server
 
 import (
-	"flag"
 	"log"
 	"net/http"
 
 	"time"
 
-	_ "github.com/jackc/pgx/v4/stdlib"
-
 	"github.com/dcaiman/YP_GO/internal/pkg/compresser"
 	"github.com/dcaiman/YP_GO/internal/pkg/filestorage"
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
 	"github.com/dcaiman/YP_GO/internal/pkg/pgxstorage"
-
-	"github.com/caarlos0/env"
-	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi"
+	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
-// Config struct contains all server settings required for run.
-type Config struct {
-	// Destination of server.
-	Address string `env:"ADDRESS"`
-
-	// Destination of database. If is not empty, database is chosen as the storage (for pgxstorage only).
-	DatabaseAddress string `env:"DATABASE_DSN"`
-
-	// Destination of file for the file storage (for filestorage only).
-	FileDestination string `env:"STORE_FILE"`
-
-	// Key for handling hashed requests.
-	HashKey string `env:"KEY"`
-
-	// Time interval between to-file storing actions (for filestorage only).
-	// If not defined, storing will be made in sync way.
-	StoreInterval time.Duration `env:"STORE_INTERVAL"`
-
-	// Defines if needed to download storage on server init (for filestorage only).
-	InitDownload bool `env:"RESTORE"`
-
-	// Defines if is needed to drop database on server init (for pgxstorage only).
-	DropDB bool
+// server struct implements full value server for metric storaging and getting them from clients.
+type server struct {
+	syncUpload chan struct{}
+	storage    metric.MetricStorage
+	config     serverConfig
 }
 
-// Server struct implements full value server for metric storaging and getting them from clients.
-type Server struct {
-	SyncUpload chan struct{}
-	Storage    metric.MStorage
-	Cfg        Config
+// Server constructor.
+func NewServer(config serverConfig) *server {
+	return &server{
+		config: config,
+	}
 }
 
-// Immediatly turns Server on.
-func (srv *Server) Run() error {
-	if srv.Cfg.DatabaseAddress != "" {
-		dbStorage, err := pgxstorage.New(srv.Cfg.DatabaseAddress, srv.Cfg.DropDB)
+// Immediatly turns server on.
+func (srv *server) Run() error {
+	if srv.config.DatabaseAddress != "" {
+		dbstorage, err := pgxstorage.New(srv.config.DatabaseAddress, srv.config.InitialDatabaseDrop)
 		if err != nil {
 			return err
 		}
 		defer func() {
-			if er := dbStorage.Close(); er != nil {
+			if er := dbstorage.Close(); er != nil {
 				log.Println(er.Error())
 			}
 		}()
-		srv.Storage = dbStorage
+		srv.storage = dbstorage
 
-	} else if srv.Cfg.FileDestination != "" {
-		fileStorage := filestorage.New(srv.Cfg.FileDestination)
+	} else if srv.config.FileDestination != "" {
+		filestorage := filestorage.New(srv.config.FileDestination)
 
-		if srv.Cfg.InitDownload {
-			if err := fileStorage.DownloadStorage(); err != nil {
+		if srv.config.InitialDownload {
+			if err := filestorage.DownloadStorage(); err != nil {
 				log.Println(err)
 			}
 		}
-		if srv.Cfg.StoreInterval != 0 {
+		if srv.config.StoreInterval != 0 {
 			go func() {
-				uploadTimer := time.NewTicker(srv.Cfg.StoreInterval)
+				uploadTimer := time.NewTicker(srv.config.StoreInterval)
 				for {
 					<-uploadTimer.C
-					if err := fileStorage.UploadStorage(); err != nil {
+					if err := filestorage.UploadStorage(); err != nil {
 						log.Println(err)
 					}
 				}
 			}()
 		} else {
-			srv.SyncUpload = make(chan struct{})
+			srv.syncUpload = make(chan struct{})
 			go func(c chan struct{}) {
 				for {
 					<-c
-					if err := fileStorage.UploadStorage(); err != nil {
+					if err := filestorage.UploadStorage(); err != nil {
 						log.Println(err)
 					}
 				}
-			}(srv.SyncUpload)
+			}(srv.syncUpload)
 		}
-		srv.Storage = fileStorage
+		srv.storage = filestorage
 	} else {
-		panic("SERVER STORAGE IS NOT DEFINED")
+		panic("server storage IS NOT DEFINED")
 	}
 
-	log.Println("SERVER CONFIG: ", srv.Cfg)
+	log.Println("server CONFIG: ", srv.config)
 
 	mainRouter := chi.NewRouter()
 	mainRouter.Use(compresser.Compresser)
@@ -120,23 +98,5 @@ func (srv *Server) Run() error {
 		r.Get("/", srv.handlerCheckConnection)
 	})
 
-	return http.ListenAndServe(srv.Cfg.Address, mainRouter)
-}
-
-// Checks command-line flags availability and parses environment variables to fill Server Config.
-// Config hierarchy: environment variables > flags > struct.
-func (srv *Server) GetExternalConfig() error {
-	flag.BoolVar(&srv.Cfg.InitDownload, "r", srv.Cfg.InitDownload, "initial download flag")
-	flag.StringVar(&srv.Cfg.FileDestination, "f", srv.Cfg.FileDestination, "storage file destination")
-	flag.StringVar(&srv.Cfg.Address, "a", srv.Cfg.Address, "server address")
-	flag.DurationVar(&srv.Cfg.StoreInterval, "i", srv.Cfg.StoreInterval, "store interval")
-	flag.StringVar(&srv.Cfg.HashKey, "k", srv.Cfg.HashKey, "hash key")
-	flag.StringVar(&srv.Cfg.DatabaseAddress, "d", srv.Cfg.DatabaseAddress, "database address")
-	flag.Parse()
-
-	if err := env.Parse(&srv.Cfg); err != nil {
-		return err
-	}
-
-	return nil
+	return http.ListenAndServe(srv.config.ServerAddress, mainRouter)
 }

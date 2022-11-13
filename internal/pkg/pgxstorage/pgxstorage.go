@@ -43,13 +43,13 @@ const (
 )
 
 // Realization of metrics storage based on Postgesql.
-type MetricStorage struct {
+type pgxStorage struct {
 	DB *sql.DB
 }
 
 // Constructor. Existing metrics table could be dropped on demand.
-func New(dbAddr string, drop bool) (*MetricStorage, error) {
-	ms := &MetricStorage{}
+func New(dbAddr string, drop bool) (*pgxStorage, error) {
+	ms := &pgxStorage{}
 
 	DB, err := sql.Open("pgx", dbAddr)
 	if err != nil {
@@ -71,17 +71,17 @@ func New(dbAddr string, drop bool) (*MetricStorage, error) {
 }
 
 // Needed to call this by defer after using Cconstructor.
-func (st *MetricStorage) Close() error {
+func (st *pgxStorage) Close() error {
 	return st.DB.Close()
 }
 
 // Checks if storage is initialized.
-func (st *MetricStorage) AccessCheck() error {
+func (st *pgxStorage) AccessCheck() error {
 	return st.DB.Ping()
 }
 
 // Returns existing metric by it's name.
-func (st *MetricStorage) GetMetric(name string) (*metric.Metric, error) {
+func (st *pgxStorage) GetMetric(name string) (*metric.Metric, error) {
 	rows, err := st.DB.Query(stGetMetric, name)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (st *MetricStorage) GetMetric(name string) (*metric.Metric, error) {
 }
 
 // Returns all storaged metrics in slice.
-func (st *MetricStorage) GetBatch() ([]*metric.Metric, error) {
+func (st *pgxStorage) GetBatch() ([]*metric.Metric, error) {
 	rows, err := st.DB.Query(stGetBatch)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (st *MetricStorage) GetBatch() ([]*metric.Metric, error) {
 }
 
 // Updates metric valuable fields: overrides Value and increments Delta.
-func (st *MetricStorage) UpdateMetric(m *metric.Metric) error {
+func (st *pgxStorage) UpdateMetric(m *metric.Metric) error {
 	if m == nil {
 		return metric.ErrCannotUpdateInvalidFormat
 	}
@@ -151,7 +151,7 @@ func (st *MetricStorage) UpdateMetric(m *metric.Metric) error {
 }
 
 // Updates metrics collected in input batch by valuable fields: overrides Values and increments Deltas.
-func (st *MetricStorage) UpdateBatch(batch []*metric.Metric) error {
+func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
 	tx, err := st.DB.Begin()
 	if err != nil {
 		return err

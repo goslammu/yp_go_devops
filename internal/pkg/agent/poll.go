@@ -9,8 +9,8 @@ import (
 )
 
 // General run of all metric collecting processes according to Poll Interval from Config.
-func (agn *Agent) poll() {
-	pollTimer := time.NewTicker(agn.Cfg.PollInterval)
+func (agn *agent) poll() {
+	pollTimer := time.NewTicker(agn.config.PollInterval)
 	for {
 		<-pollTimer.C
 		agn.pollRuntimeGauges()
@@ -20,7 +20,7 @@ func (agn *Agent) poll() {
 }
 
 // Runs runtime metrics collecting processes.
-func (agn *Agent) pollRuntimeGauges() {
+func (agn *agent) pollRuntimeGauges() {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
 
@@ -28,7 +28,7 @@ func (agn *Agent) pollRuntimeGauges() {
 		go func(name string, mem *runtime.MemStats) {
 			val := agn.getRuntimeMetricValue(name, mem)
 
-			if err := agn.Storage.UpdateMetric(&metric.Metric{
+			if err := agn.storage.UpdateMetric(&metric.Metric{
 				ID:    name,
 				MType: Gauge,
 				Value: &val,
@@ -41,7 +41,7 @@ func (agn *Agent) pollRuntimeGauges() {
 }
 
 // Runs custom metrics collecting processes.
-func (agn *Agent) pollCustomGauges() {
+func (agn *agent) pollCustomGauges() {
 	for i := range agn.CustomGauges {
 		go func(name string) {
 			val, err := agn.getCustomMetricValue(name)
@@ -50,7 +50,7 @@ func (agn *Agent) pollCustomGauges() {
 				return
 			}
 
-			if err := agn.Storage.UpdateMetric(&metric.Metric{
+			if err := agn.storage.UpdateMetric(&metric.Metric{
 				ID:    name,
 				MType: Gauge,
 				Value: &val,
@@ -63,12 +63,12 @@ func (agn *Agent) pollCustomGauges() {
 }
 
 // Runs counters processes.
-func (agn *Agent) pollCounters() {
+func (agn *agent) pollCounters() {
 	for i := range agn.Counters {
 		go func(name string) {
 			var del int64 = 1
 
-			if err := agn.Storage.UpdateMetric(&metric.Metric{
+			if err := agn.storage.UpdateMetric(&metric.Metric{
 				ID:    name,
 				MType: Counter,
 				Delta: &del,

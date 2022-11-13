@@ -180,7 +180,7 @@ func Test_UpdateBatch(t *testing.T) {
 
 func Test_AccessCheck(t *testing.T) {
 	ms := New("")
-	msEmpty := &MetricStorage{}
+	msEmpty := &fileStorage{}
 
 	assert.NoError(t, ms.AccessCheck())
 	assert.ErrorIs(t, msEmpty.AccessCheck(), metric.ErrStorageIsNotInitialized)

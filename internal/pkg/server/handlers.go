@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	ErrUnsupportedType    = errors.New("unsupported type")
-	ErrInconsistentHashes = errors.New("inconsistent hashes")
-	ErrInvalidFormat      = errors.New("invalid format")
+	errUnsupportedType    = errors.New("unsupported type")
+	errInconsistentHashes = errors.New("inconsistent hashes")
+	errInvalidFormat      = errors.New("invalid format")
 )
 
 const (
@@ -43,8 +43,8 @@ const (
 )
 
 // Checks connection from server to storage.
-func (srv *Server) handlerCheckConnection(w http.ResponseWriter, r *http.Request) {
-	if err := srv.Storage.AccessCheck(); err != nil {
+func (srv *server) handlerCheckConnection(w http.ResponseWriter, r *http.Request) {
+	if err := srv.storage.AccessCheck(); err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -58,7 +58,7 @@ func (srv *Server) handlerCheckConnection(w http.ResponseWriter, r *http.Request
 }
 
 // Updates batch of metrics kept in request body in json-format.
-func (srv *Server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
+func (srv *server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
 	batch := []*metric.Metric{}
 
 	mj, err := io.ReadAll(r.Body)
@@ -76,8 +76,8 @@ func (srv *Server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
 
 	for i := range batch {
 		if batch[i].Hash == "" {
-			log.Println(ErrInvalidFormat.Error())
-			http.Error(w, ErrInvalidFormat.Error(), http.StatusBadRequest)
+			log.Println(errInvalidFormat.Error())
+			http.Error(w, errInvalidFormat.Error(), http.StatusBadRequest)
 			return
 		}
 		if _, err := srv.checkHash(batch[i]); err != nil {
@@ -88,19 +88,19 @@ func (srv *Server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
 		batch[i].Hash = ""
 	}
 
-	if err := srv.Storage.UpdateBatch(batch); err != nil {
+	if err := srv.storage.UpdateBatch(batch); err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if srv.SyncUpload != nil {
-		srv.syncUpload()
+	if srv.syncUpload != nil {
+		srv.fileUpload()
 	}
 }
 
 // Updates individual metric kept in request body in json-format.
-func (srv *Server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
+func (srv *server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	mj, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
@@ -115,7 +115,7 @@ func (srv *Server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("Hash") != "" && srv.Cfg.HashKey != "" {
+	if r.Header.Get("Hash") != "" && srv.config.HashKey != "" {
 		resHash, err := srv.checkHash(&m)
 		w.Header().Set("Hash", resHash)
 		if err != nil {
@@ -132,19 +132,19 @@ func (srv *Server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := srv.Storage.UpdateMetric(&m); err != nil {
+	if err := srv.storage.UpdateMetric(&m); err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if srv.SyncUpload != nil {
-		srv.syncUpload()
+	if srv.syncUpload != nil {
+		srv.fileUpload()
 	}
 }
 
 // Updates individual metric kept in URL in format "/type/id/value".
-func (srv *Server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
+func (srv *server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	fmt.Println(mType)
 	if err := checkTypeSupport(mType); err != nil {
@@ -171,7 +171,7 @@ func (srv *Server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 
 	mName := chi.URLParam(r, "name")
 
-	if err := srv.Storage.UpdateMetric(&metric.Metric{
+	if err := srv.storage.UpdateMetric(&metric.Metric{
 		ID:    mName,
 		MType: mType,
 		Value: &mValue,
@@ -182,13 +182,13 @@ func (srv *Server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if srv.SyncUpload != nil {
-		srv.syncUpload()
+	if srv.syncUpload != nil {
+		srv.fileUpload()
 	}
 }
 
 // Outputs all stored metrics.
-func (srv *Server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
+func (srv *server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	t, err := template.New("").Parse(templateHandlerGetAll)
 	if err != nil {
@@ -197,7 +197,7 @@ func (srv *Server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allMetrics, err := srv.Storage.GetBatch()
+	allMetrics, err := srv.storage.GetBatch()
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -216,7 +216,7 @@ func (srv *Server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 // Outputs individual metric to response body in json-format.
-func (srv *Server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) {
+func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) {
 	mjReq, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
@@ -237,7 +237,7 @@ func (srv *Server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	mRes, err := srv.Storage.GetMetric(mReq.ID)
+	mRes, err := srv.storage.GetMetric(mReq.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -248,7 +248,7 @@ func (srv *Server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if er := mRes.UpdateHash(srv.Cfg.HashKey); er != nil {
+	if er := mRes.UpdateHash(srv.config.HashKey); er != nil {
 		log.Println(er.Error())
 		http.Error(w, er.Error(), http.StatusInternalServerError)
 		return
@@ -271,7 +271,7 @@ func (srv *Server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 }
 
 // Outputs value of requested metric. Request is parsed from URL in format "/type/name".
-func (srv *Server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
+func (srv *server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	if err := checkTypeSupport(mType); err != nil {
 		log.Println(err.Error())
@@ -280,7 +280,7 @@ func (srv *Server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mName := chi.URLParam(r, "name")
-	m, err := srv.Storage.GetMetric(mName)
+	m, err := srv.storage.GetMetric(mName)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -313,25 +313,25 @@ func checkTypeSupport(mType string) error {
 			return nil
 		}
 	}
-	return ErrUnsupportedType
+	return errUnsupportedType
 }
 
 // Calculates input metric's hash again by server own key and compares it with existing.
 // If hashes are inconsistent, returns corresponding error.
-func (srv *Server) checkHash(m *metric.Metric) (string, error) {
+func (srv *server) checkHash(m *metric.Metric) (string, error) {
 	h := m.Hash
 
-	if er := m.UpdateHash(srv.Cfg.HashKey); er != nil {
+	if er := m.UpdateHash(srv.config.HashKey); er != nil {
 		return "", er
 	}
 
 	if h != m.Hash {
-		return "", ErrInconsistentHashes
+		return "", errInconsistentHashes
 	}
 
 	return m.Hash, nil
 }
 
-func (srv *Server) syncUpload() {
-	srv.SyncUpload <- struct{}{}
+func (srv *server) fileUpload() {
+	srv.syncUpload <- struct{}{}
 }

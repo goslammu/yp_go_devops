@@ -27,22 +27,21 @@ func main() {
 	log.Println("Build date: ", buildDate)
 	log.Println("Build commit: ", buildCommit)
 
-	srv := server.Server{
-		Cfg: server.Config{
-			Address: "127.0.0.1:8080",
-			//DatabaseAddress: "postgresql://postgres:1@127.0.0.1:5432",
-			StoreInterval:   0 * time.Second,
-			FileDestination: "./tmp/metricStorage.json",
-			HashKey:         "key",
-			InitDownload:    true,
+	config := server.NewConfig(
+		"127.0.0.1:8080",
+		"", // "postgresql://postgres:1@127.0.0.1:5432",
+		"./tmp/metricStorage.json",
+		"key",
+		time.Second,
+		true,
+		false,
+	)
 
-			DropDB: false,
-		},
-	}
-
-	if err := srv.GetExternalConfig(); err != nil {
+	if err := config.SetByExternal(); err != nil {
 		panic(err)
 	}
+
+	srv := server.NewServer(config)
 
 	if err := srv.Run(); err != nil {
 		panic(err)

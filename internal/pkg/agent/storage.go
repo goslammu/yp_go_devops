@@ -30,12 +30,12 @@ const (
 )
 
 // Collects runtime metric by it's name.
-func (agn *Agent) getRuntimeMetricValue(name string, mem *runtime.MemStats) float64 {
+func (agn *agent) getRuntimeMetricValue(name string, mem *runtime.MemStats) float64 {
 	return reflect.Indirect(reflect.ValueOf(mem)).FieldByName(name).Convert(reflect.TypeOf(0.0)).Float()
 }
 
 // Collects custom metric by it's name. Implements individual algorithms for custom metrics.
-func (agn *Agent) getCustomMetricValue(name string) (float64, error) {
+func (agn *agent) getCustomMetricValue(name string) (float64, error) {
 	switch name {
 	case RandomValue:
 		return 100 * rand.Float64(), nil
@@ -70,14 +70,14 @@ func (agn *Agent) getCustomMetricValue(name string) (float64, error) {
 }
 
 // Gives a batch of all storaged metrics in json format.
-func (agn *Agent) getStorageBatch() ([]byte, error) {
-	allMetrics, err := agn.Storage.GetBatch()
+func (agn *agent) getStorageBatch() ([]byte, error) {
+	allMetrics, err := agn.storage.GetBatch()
 	if err != nil {
 		return nil, err
 	}
 
 	for i := range allMetrics {
-		if er := allMetrics[i].UpdateHash(agn.Cfg.HashKey); er != nil {
+		if er := allMetrics[i].UpdateHash(agn.config.HashKey); er != nil {
 			return nil, er
 		}
 	}
@@ -92,13 +92,13 @@ func (agn *Agent) getStorageBatch() ([]byte, error) {
 }
 
 // Resets all counters in agent storage.
-func (agn *Agent) resetCounters() error {
+func (agn *agent) resetCounters() error {
 	for _, name := range agn.Counters {
 		m := metric.Metric{
 			ID:    name,
 			MType: Counter,
 		}
-		if err := agn.Storage.UpdateMetric(&m); err != nil {
+		if err := agn.storage.UpdateMetric(&m); err != nil {
 			return err
 		}
 	}
@@ -106,8 +106,8 @@ func (agn *Agent) resetCounters() error {
 }
 
 // Resets individual counter.
-func (agn *Agent) resetCounter(name string) error {
-	if err := agn.Storage.UpdateMetric(&metric.Metric{
+func (agn *agent) resetCounter(name string) error {
+	if err := agn.storage.UpdateMetric(&metric.Metric{
 		ID:    name,
 		MType: Counter,
 	}); err != nil {

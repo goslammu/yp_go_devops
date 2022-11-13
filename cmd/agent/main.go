@@ -18,6 +18,12 @@ var (
 )
 
 func main() {
+	go func() {
+		if err := http.ListenAndServe(":7070", nil); err != nil {
+			panic(err)
+		}
+	}()
+
 	log.Println("Build version: ", buildVersion)
 	log.Println("Build date: ", buildDate)
 	log.Println("Build commit: ", buildCommit)
@@ -63,29 +69,24 @@ func main() {
 		customGauges = append(customGauges, agent.CPUutilization+fmt.Sprint(i))
 	}
 
-	agn := agent.Agent{
-		Cfg: agent.Config{
-			CType:          agent.JSONCT,
-			PollInterval:   1000 * time.Millisecond,
-			ReportInterval: 3000 * time.Millisecond,
-			SrvAddr:        "127.0.0.1:8080",
-			HashKey:        "key",
-			SendBatch:      true,
-		},
-		RuntimeGauges: runtimeGauges,
-		CustomGauges:  customGauges,
-		Counters:      counters,
-	}
+	config := agent.NewConfig(
+		"127.0.0.1:8080",
+		"key",
+		agent.JSONCT,
+		true,
+		1000*time.Millisecond,
+		3000*time.Millisecond,
+	)
 
-	if err := agn.GetExternalConfig(); err != nil {
+	if err := config.GetExternalConfig(); err != nil {
 		panic(err)
 	}
 
-	go func() {
-		if err := http.ListenAndServe(":7070", nil); err != nil {
-			panic(err)
-		}
-	}()
+	agn := agent.NewAgent(config)
+
+	agn.RuntimeGauges = runtimeGauges
+	agn.Counters = counters
+	agn.CustomGauges = customGauges
 
 	if err := agn.Run(); err != nil {
 		panic(err)

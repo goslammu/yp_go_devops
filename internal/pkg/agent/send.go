@@ -17,19 +17,19 @@ const (
 )
 
 // Sends individual metric to the server.
-func (agn *Agent) sendMetric(name string) error {
+func (agn *agent) sendMetric(name string) error {
 	var url, val string
 	var body []byte
 
-	m, err := agn.Storage.GetMetric(name)
+	m, err := agn.storage.GetMetric(name)
 	if err != nil {
 		return err
 	}
-	if er := m.UpdateHash(agn.Cfg.HashKey); er != nil {
+	if er := m.UpdateHash(agn.config.HashKey); er != nil {
 		return er
 	}
 
-	switch agn.Cfg.CType {
+	switch agn.config.ContentType {
 	case TextPlainCT:
 		switch m.MType {
 		case Gauge:
@@ -39,19 +39,19 @@ func (agn *Agent) sendMetric(name string) error {
 		default:
 			return errors.New("cannot send: unsupported metric type <" + m.MType + ">")
 		}
-		url = agn.Cfg.SrvAddr + "/update/" + m.MType + "/" + m.ID + "/" + val
+		url = agn.config.ServerAddr + "/update/" + m.MType + "/" + m.ID + "/" + val
 		body = nil
 	case JSONCT:
 		tmpBody, er := json.Marshal(m)
 		if er != nil {
 			return er
 		}
-		url = agn.Cfg.SrvAddr + "/update/"
+		url = agn.config.ServerAddr + "/update/"
 		body = tmpBody
 	default:
-		return errors.New("cannot send: unsupported content type <" + agn.Cfg.CType + ">")
+		return errors.New("cannot send: unsupported content type <" + agn.config.ContentType + ">")
 	}
-	res, err := customPostRequest(HTTPStr+url, agn.Cfg.CType, m.Hash, bytes.NewBuffer(body))
+	res, err := customPostRequest(HTTPStr+url, agn.config.ContentType, m.Hash, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -72,12 +72,12 @@ func (agn *Agent) sendMetric(name string) error {
 }
 
 // Sends all storaged metrics collected in batch to the server.
-func (agn *Agent) sendBatch() error {
+func (agn *agent) sendBatch() error {
 	body, err := agn.getStorageBatch()
 	if err != nil {
 		return err
 	}
-	res, err := customPostRequest(HTTPStr+agn.Cfg.SrvAddr+"/updates/", JSONCT, "", bytes.NewBuffer(body))
+	res, err := customPostRequest(HTTPStr+agn.config.ServerAddr+"/updates/", JSONCT, "", bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
