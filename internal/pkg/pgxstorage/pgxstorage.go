@@ -2,6 +2,7 @@ package pgxstorage
 
 import (
 	"database/sql"
+	"log"
 
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
 )
@@ -156,6 +157,14 @@ func (st *MetricStorage) UpdateBatch(batch []*metric.Metric) error {
 		return err
 	}
 
+	defer func() {
+		if er := tx.Rollback(); er != nil {
+			log.Println(er.Error())
+			return
+		}
+
+	}()
+
 	txStUpdateMetric, err := tx.Prepare(stUpdateMetric)
 	if err != nil {
 		return err
@@ -177,10 +186,6 @@ func (st *MetricStorage) UpdateBatch(batch []*metric.Metric) error {
 
 	if err := tx.Commit(); err != nil {
 		return err
-	}
-
-	if er := tx.Rollback(); er != nil {
-		return er
 	}
 
 	if er := txStUpdateMetric.Close(); er != nil {
