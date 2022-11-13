@@ -133,7 +133,9 @@ func (srv *server) Shutdown() error {
 		close(srv.syncUpload)
 	}
 
-	srv.storage.Close()
+	if err := srv.storage.Close(); err != nil {
+		return err
+	}
 
 	return srv.s.Shutdown(context.Background())
 }
