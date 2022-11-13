@@ -39,19 +39,11 @@ func NewServer(config serverConfig) *server {
 
 // Immediatly turns server on.
 func (srv *server) Init() error {
-	srv.syncUpload = make(chan struct{})
-
 	if srv.config.DatabaseAddress != "" {
 		dbstorage, err := pgxstorage.New(srv.config.DatabaseAddress, srv.config.InitialDatabaseDrop)
 		if err != nil {
 			return err
 		}
-
-		defer func() {
-			if er := dbstorage.Close(); er != nil {
-				log.Println(er.Error())
-			}
-		}()
 
 		srv.storage = dbstorage
 
@@ -65,6 +57,7 @@ func (srv *server) Init() error {
 		}
 
 		if srv.config.StoreInterval != 0 {
+
 			go func() {
 				uploadTimer := time.NewTicker(srv.config.StoreInterval)
 				for {
@@ -76,6 +69,8 @@ func (srv *server) Init() error {
 				}
 			}()
 		} else {
+			srv.syncUpload = make(chan struct{})
+
 			go func(c chan struct{}) {
 				for {
 					<-c
@@ -137,6 +132,8 @@ func (srv *server) Shutdown() error {
 	if srv.syncUpload != nil {
 		close(srv.syncUpload)
 	}
+
+	srv.storage.Close()
 
 	return srv.s.Shutdown(context.Background())
 }

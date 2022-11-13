@@ -30,6 +30,9 @@ type MetricStorage interface {
 
 	// Checks if storage is initialized.
 	AccessCheck() error
+
+	// Turns storage off.
+	Close() error
 }
 
 type Metric struct {

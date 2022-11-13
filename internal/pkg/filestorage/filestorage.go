@@ -25,6 +25,10 @@ func New(filePath string) *fileStorage {
 	}
 }
 
+func (st *fileStorage) Close() error {
+	return nil
+}
+
 // Returns existing metric by it's name.
 func (st *fileStorage) GetMetric(name string) (*metric.Metric, error) {
 	st.Lock()

@@ -35,36 +35,25 @@ type serverConfig struct {
 // Serverconfig constructor.
 func NewConfig(serverAddress, databaseAddress, fileDestination, hashKey string, storeInterval time.Duration, initDownload, initialDatabaseDrop bool) serverConfig {
 	return serverConfig{
-		ServerAddress:   serverAddress,
-		DatabaseAddress: databaseAddress,
-		FileDestination: fileDestination,
-		HashKey:         hashKey,
-		StoreInterval:   storeInterval,
-		InitialDownload: initDownload,
+		ServerAddress:       serverAddress,
+		DatabaseAddress:     databaseAddress,
+		FileDestination:     fileDestination,
+		HashKey:             hashKey,
+		StoreInterval:       storeInterval,
+		InitialDownload:     initDownload,
+		InitialDatabaseDrop: initialDatabaseDrop,
 	}
 }
 
 // Checks command-line flags availability and parses environment variables to fill server Config.
 // Config hierarchy: environment variables > flags > struct.
 func (cf *serverConfig) SetByExternal() error {
-	if flag.Lookup("r") == nil {
-		flag.BoolVar(&cf.InitialDownload, "r", cf.InitialDownload, "initial download flag")
-	}
-	if flag.Lookup("f") == nil {
-		flag.StringVar(&cf.FileDestination, "f", cf.FileDestination, "storage file destination")
-	}
-	if flag.Lookup("a") == nil {
-		flag.StringVar(&cf.ServerAddress, "a", cf.ServerAddress, "server address")
-	}
-	if flag.Lookup("i") == nil {
-		flag.DurationVar(&cf.StoreInterval, "i", cf.StoreInterval, "store interval")
-	}
-	if flag.Lookup("k") == nil {
-		flag.StringVar(&cf.HashKey, "k", cf.HashKey, "hash key")
-	}
-	if flag.Lookup("d") == nil {
-		flag.StringVar(&cf.DatabaseAddress, "d", cf.DatabaseAddress, "database address")
-	}
+	flag.BoolVar(&cf.InitialDownload, "r", cf.InitialDownload, "initial download flag")
+	flag.StringVar(&cf.FileDestination, "f", cf.FileDestination, "storage file destination")
+	flag.StringVar(&cf.ServerAddress, "a", cf.ServerAddress, "server address")
+	flag.DurationVar(&cf.StoreInterval, "i", cf.StoreInterval, "store interval")
+	flag.StringVar(&cf.HashKey, "k", cf.HashKey, "hash key")
+	flag.StringVar(&cf.DatabaseAddress, "d", cf.DatabaseAddress, "database address")
 	flag.Parse()
 
 	if err := env.Parse(cf); err != nil {

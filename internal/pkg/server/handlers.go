@@ -22,6 +22,7 @@ var (
 
 const (
 	templateHandlerGetAll = "METRICS LIST: <p>{{range .}}{{.ID}}: {{.Value}}{{.Delta}} ({{.MType}})</p>{{end}}"
+	storageIsAvailable    = "STORAGE IS AVAILABLE"
 )
 
 // List of metric types which could be handled and storaged by server.
@@ -49,7 +50,7 @@ func (srv *server) handlerCheckConnection(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if _, err := w.Write([]byte("STORAGE IS AVAILABLE")); err != nil {
+	if _, err := w.Write([]byte(storageIsAvailable)); err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

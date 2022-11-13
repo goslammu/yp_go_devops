@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/dcaiman/YP_GO/internal/pkg/filestorage"
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
 	"github.com/stretchr/testify/assert"
 )
@@ -151,6 +152,25 @@ func Test_handlerUpdateBatch(t *testing.T) {
 
 		status := rec.Code
 		assert.Equal(t, http.StatusBadRequest, status)
+	})
+}
+
+func Test_handlerCheckConnection(t *testing.T) {
+	srv := server{
+		storage: filestorage.New(""),
+	}
+
+	t.Run("filestorage", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/ping", nil)
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+		handler := http.HandlerFunc(srv.handlerCheckConnection)
+
+		handler.ServeHTTP(rec, req)
+
+		status := rec.Code
+		assert.Equal(t, http.StatusOK, status)
 	})
 }
 
