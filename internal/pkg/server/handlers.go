@@ -95,7 +95,7 @@ func (srv *server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if srv.syncUpload != nil {
+	if srv.config.StoreInterval == 0 {
 		srv.fileUpload()
 	}
 }
@@ -139,7 +139,7 @@ func (srv *server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if srv.syncUpload != nil {
+	if srv.config.StoreInterval == 0 {
 		srv.fileUpload()
 	}
 }
@@ -182,7 +182,7 @@ func (srv *server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if srv.syncUpload != nil {
+	if srv.config.StoreInterval == 0 {
 		srv.fileUpload()
 	}
 }
@@ -334,5 +334,5 @@ func (srv *server) checkHash(m *metric.Metric) (string, error) {
 }
 
 func (srv *server) fileUpload() {
-	srv.syncUpload <- struct{}{}
+	srv.uploadSig <- struct{}{}
 }

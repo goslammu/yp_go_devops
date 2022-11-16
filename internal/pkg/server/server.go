@@ -25,7 +25,7 @@ var (
 // server struct implements full value server for metric storaging and getting them from clients.
 type server struct {
 	storage     metric.MetricStorage
-	syncUpload  chan struct{}
+	uploadSig   chan struct{}
 	s           *http.Server
 	config      serverConfig
 	initialized bool
@@ -38,8 +38,44 @@ func NewServer(config serverConfig) *server {
 	}
 }
 
-// Immediatly turns server on.
+// Init initializes server components.
 func (srv *server) Init() error {
+	if err := srv.initStorage(); err != nil {
+		return err
+	}
+
+	if err := srv.initRouter(); err != nil {
+		return err
+	}
+
+	srv.initialized = true
+
+	return nil
+}
+
+// Run immediatly turns server on.
+func (srv *server) Run() error {
+	if srv.initialized {
+		return srv.s.ListenAndServe()
+	}
+
+	return errNotInitialized
+}
+
+func (srv *server) Shutdown() error {
+	if srv.uploadSig != nil {
+		close(srv.uploadSig)
+	}
+
+	if err := srv.storage.Close(); err != nil {
+		return err
+	}
+
+	return srv.s.Shutdown(context.Background())
+}
+
+// initStorage initializes storage according to server configuration.
+func (srv *server) initStorage() error {
 	if srv.config.DatabaseAddress != "" {
 		dbstorage, err := pgxstorage.New(srv.config.DatabaseAddress, srv.config.InitialDatabaseDrop)
 		if err != nil {
@@ -48,7 +84,14 @@ func (srv *server) Init() error {
 
 		srv.storage = dbstorage
 
-	} else if srv.config.FileDestination != "" {
+		srv.config.StoreInterval = -1
+
+		return nil
+	}
+
+	if srv.config.FileDestination != "" {
+		srv.uploadSig = make(chan struct{})
+
 		filestorage := filestorage.New(srv.config.FileDestination)
 
 		if srv.config.InitialDownload {
@@ -58,41 +101,49 @@ func (srv *server) Init() error {
 		}
 
 		if srv.config.StoreInterval != 0 {
-
 			go func() {
 				uploadTimer := time.NewTicker(srv.config.StoreInterval)
-				for {
-					<-uploadTimer.C
 
-					if err := filestorage.UploadStorage(); err != nil {
-						log.Println(err)
+				for {
+					select {
+					case <-uploadTimer.C:
+						if err := filestorage.UploadStorage(); err != nil {
+							log.Println(err)
+						}
+					case <-srv.uploadSig:
+						return
 					}
 				}
 			}()
 		} else {
-			srv.syncUpload = make(chan struct{})
-
-			go func(c chan struct{}) {
+			go func(syncUploadSig chan struct{}) {
 				for {
-					<-c
+					_, ok := <-syncUploadSig
+					if !ok {
+						return
+					}
 
 					if err := filestorage.UploadStorage(); err != nil {
 						log.Println(err)
 					}
 				}
-			}(srv.syncUpload)
+			}(srv.uploadSig)
 		}
 
 		srv.storage = filestorage
 
-	} else {
-		return errStorageNotDefined
+		return nil
 	}
 
-	log.Println("server CONFIG: ", srv.config)
+	return errStorageNotDefined
+}
 
+// initRouter initializes server main http-router.
+func (srv *server) initRouter() error {
 	mainRouter := chi.NewRouter()
+
 	mainRouter.Use(compresser.Compresser)
+
 	mainRouter.Route("/", func(r chi.Router) {
 		r.Get("/", srv.handlerGetAll)
 	})
@@ -116,27 +167,5 @@ func (srv *server) Init() error {
 		Handler: mainRouter,
 	}
 
-	srv.initialized = true
-
 	return nil
-}
-
-func (srv *server) Run() error {
-	if srv.initialized {
-		return srv.s.ListenAndServe()
-	}
-
-	return errNotInitialized
-}
-
-func (srv *server) Shutdown() error {
-	if srv.syncUpload != nil {
-		close(srv.syncUpload)
-	}
-
-	if err := srv.storage.Close(); err != nil {
-		return err
-	}
-
-	return srv.s.Shutdown(context.Background())
 }

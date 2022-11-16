@@ -52,7 +52,7 @@ func Test_serverConfiguration(t *testing.T) {
 		ok := true
 
 		select {
-		case _, ok = <-srv.syncUpload:
+		case _, ok = <-srv.uploadSig:
 		default:
 		}
 
