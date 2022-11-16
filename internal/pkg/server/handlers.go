@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"sort"
 	"strconv"
 	"text/template"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
 	"github.com/go-chi/chi"

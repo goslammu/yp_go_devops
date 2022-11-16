@@ -3,8 +3,9 @@ package server
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"time"
 

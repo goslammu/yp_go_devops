@@ -1,8 +1,9 @@
 package agent
 
 import (
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // report() runs metrics sending to server according to Report Interval from Config.

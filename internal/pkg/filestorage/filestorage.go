@@ -3,9 +3,10 @@ package filestorage
 import (
 	"bufio"
 	"encoding/json"
-	"log"
 	"os"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
 )

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"runtime"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dcaiman/YP_GO/internal/pkg/agent"
 )

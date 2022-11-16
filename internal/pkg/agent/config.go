@@ -2,7 +2,6 @@ package agent
 
 import (
 	"flag"
-	"log"
 	"time"
 
 	"github.com/caarlos0/env"
@@ -51,7 +50,6 @@ func (cf *agentConfig) GetExternalConfig() error {
 	flag.Parse()
 
 	if err := env.Parse(cf); err != nil {
-		log.Println(1111)
 		return err
 	}
 

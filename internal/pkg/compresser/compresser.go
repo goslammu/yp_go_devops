@@ -3,9 +3,10 @@ package compresser
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type customWriter struct {

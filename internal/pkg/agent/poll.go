@@ -1,9 +1,10 @@
 package agent
 
 import (
-	"log"
 	"runtime"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
 )
