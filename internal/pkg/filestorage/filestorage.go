@@ -119,6 +119,11 @@ func (st *fileStorage) UploadStorage() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if er := file.Close(); er != nil {
+			log.Println(err)
+		}
+	}()
 
 	for name := range st.metrics {
 		mj, err := json.Marshal(st.metrics[name])
@@ -134,10 +139,6 @@ func (st *fileStorage) UploadStorage() error {
 
 	log.Println("UPLOADED TO: " + st.FilePath)
 
-	if er := file.Close(); er != nil {
-		return er
-	}
-
 	return nil
 }
 
@@ -150,6 +151,11 @@ func (st *fileStorage) DownloadStorage() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if er := file.Close(); er != nil {
+			log.Println(err)
+		}
+	}()
 
 	b := bufio.NewScanner(file)
 
@@ -166,10 +172,6 @@ func (st *fileStorage) DownloadStorage() error {
 	}
 
 	log.Println("DOWNLOADED FROM: " + st.FilePath)
-
-	if er := file.Close(); er != nil {
-		return er
-	}
 
 	return nil
 }

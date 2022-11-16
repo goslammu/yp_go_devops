@@ -56,6 +56,11 @@ func (agn *agent) sendMetric(name string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if er := res.Body.Close(); er != nil {
+			log.Println(err)
+		}
+	}()
 
 	if m.MType == Counter {
 		if err := agn.resetCounter(name); err != nil {
@@ -64,10 +69,6 @@ func (agn *agent) sendMetric(name string) error {
 	}
 
 	log.Println("SEND METRIC: ", res.Status, res.Request.URL)
-
-	if er := res.Body.Close(); er != nil {
-		return er
-	}
 
 	return nil
 }
@@ -82,16 +83,17 @@ func (agn *agent) sendBatch() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if er := res.Body.Close(); er != nil {
+			log.Println(err)
+		}
+	}()
 
 	if err := agn.resetCounters(); err != nil {
 		return err
 	}
 
 	log.Println("SEND BATCH: ", res.Status, res.Request.URL)
-
-	if er := res.Body.Close(); er != nil {
-		return er
-	}
 
 	return nil
 }

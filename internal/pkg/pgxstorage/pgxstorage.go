@@ -87,6 +87,11 @@ func (st *pgxStorage) GetMetric(name string) (*metric.Metric, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if er := rows.Close(); er != nil {
+			log.Println(err)
+		}
+	}()
 
 	m := metric.Metric{}
 	for rows.Next() {
@@ -101,10 +106,6 @@ func (st *pgxStorage) GetMetric(name string) (*metric.Metric, error) {
 		return nil, err
 	}
 
-	if er := rows.Close(); er != nil {
-		return nil, er
-	}
-
 	return &m, nil
 }
 
@@ -114,6 +115,11 @@ func (st *pgxStorage) GetBatch() ([]*metric.Metric, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if er := rows.Close(); er != nil {
+			log.Println(err)
+		}
+	}()
 
 	allMetrics := []*metric.Metric{}
 	for rows.Next() {
@@ -126,10 +132,6 @@ func (st *pgxStorage) GetBatch() ([]*metric.Metric, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 
-	}
-
-	if er := rows.Close(); er != nil {
-		return nil, er
 	}
 
 	return allMetrics, nil
