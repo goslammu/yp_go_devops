@@ -30,12 +30,12 @@ const (
 )
 
 // Collects runtime metric by it's name.
-func (agn *agent) getRuntimeMetricValue(name string, mem *runtime.MemStats) float64 {
+func getRuntimeMetricValue(name string, mem *runtime.MemStats) float64 {
 	return reflect.Indirect(reflect.ValueOf(mem)).FieldByName(name).Convert(reflect.TypeOf(0.0)).Float()
 }
 
 // Collects custom metric by it's name. Implements individual algorithms for custom metrics.
-func (agn *agent) getCustomMetricValue(name string) (float64, error) {
+func getCustomMetricValue(name string) (float64, error) {
 	switch name {
 	case RandomValue:
 		return 100 * rand.Float64(), nil

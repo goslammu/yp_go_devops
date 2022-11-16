@@ -27,7 +27,7 @@ func (agn *agent) pollRuntimeGauges() {
 
 	for i := range agn.RuntimeGauges {
 		go func(name string, mem *runtime.MemStats) {
-			val := agn.getRuntimeMetricValue(name, mem)
+			val := getRuntimeMetricValue(name, mem)
 
 			if err := agn.storage.UpdateMetric(&metric.Metric{
 				ID:    name,
@@ -45,7 +45,7 @@ func (agn *agent) pollRuntimeGauges() {
 func (agn *agent) pollCustomGauges() {
 	for i := range agn.CustomGauges {
 		go func(name string) {
-			val, err := agn.getCustomMetricValue(name)
+			val, err := getCustomMetricValue(name)
 			if err != nil {
 				log.Println(err)
 				return
