@@ -208,9 +208,9 @@ func (srv *server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
 		return allMetrics[i].ID < allMetrics[j].ID
 	})
 
-	if er := t.Execute(w, allMetrics); er != nil {
-		log.Println(er.Error())
-		http.Error(w, er.Error(), http.StatusInternalServerError)
+	if errExecute := t.Execute(w, allMetrics); errExecute != nil {
+		log.Println(errExecute.Error())
+		http.Error(w, errExecute.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -225,15 +225,15 @@ func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 	}
 
 	mReq := metric.Metric{}
-	if er := json.Unmarshal(mjReq, &mReq); er != nil {
-		log.Println(er.Error())
-		http.Error(w, er.Error(), http.StatusBadRequest)
+	if errUnmarshal := json.Unmarshal(mjReq, &mReq); errUnmarshal != nil {
+		log.Println(errUnmarshal.Error())
+		http.Error(w, errUnmarshal.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if er := checkTypeSupport(mReq.MType); er != nil {
-		log.Println(er.Error())
-		http.Error(w, er.Error(), http.StatusNotImplemented)
+	if errCheckType := checkTypeSupport(mReq.MType); errCheckType != nil {
+		log.Println(errCheckType.Error())
+		http.Error(w, errCheckType.Error(), http.StatusNotImplemented)
 		return
 	}
 
@@ -248,9 +248,9 @@ func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if er := mRes.UpdateHash(srv.config.HashKey); er != nil {
-		log.Println(er.Error())
-		http.Error(w, er.Error(), http.StatusInternalServerError)
+	if errUpdateHash := mRes.UpdateHash(srv.config.HashKey); errUpdateHash != nil {
+		log.Println(errUpdateHash.Error())
+		http.Error(w, errUpdateHash.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -263,9 +263,9 @@ func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", JSONCT)
 
-	if _, er := w.Write(mjRes); er != nil {
-		log.Println(er.Error())
-		http.Error(w, er.Error(), http.StatusInternalServerError)
+	if _, errWrite := w.Write(mjRes); errWrite != nil {
+		log.Println(errWrite.Error())
+		http.Error(w, errWrite.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -287,9 +287,9 @@ func (srv *server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if m.MType != mType {
-		er := errors.New("cannot get: metric <" + mName + "> is not <" + mType + ">")
-		log.Println(er.Error())
-		http.Error(w, er.Error(), http.StatusNotFound)
+		errWrongType := errors.New("cannot get: metric <" + mName + "> is not <" + mType + ">")
+		log.Println(errWrongType.Error())
+		http.Error(w, errWrongType.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -322,8 +322,8 @@ func checkTypeSupport(mType string) error {
 func (srv *server) checkHash(m *metric.Metric) (string, error) {
 	h := m.Hash
 
-	if er := m.UpdateHash(srv.config.HashKey); er != nil {
-		return "", er
+	if errUpdateHash := m.UpdateHash(srv.config.HashKey); errUpdateHash != nil {
+		return "", errUpdateHash
 	}
 
 	if h != m.Hash {

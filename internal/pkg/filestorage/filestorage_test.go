@@ -219,7 +219,7 @@ func Test_LoadStorage(t *testing.T) {
 	assert.Error(t, New("").UploadStorage())
 	assert.Error(t, New("").DownloadStorage())
 
-	if er := os.Remove(path); er != nil {
+	if err := os.Remove(path); err != nil {
 		return
 	}
 }

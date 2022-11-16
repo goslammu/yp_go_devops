@@ -120,8 +120,8 @@ func (st *fileStorage) UploadStorage() error {
 		return err
 	}
 	defer func() {
-		if er := file.Close(); er != nil {
-			log.Println(err)
+		if errFileClose := file.Close(); errFileClose != nil {
+			log.Println(errFileClose)
 		}
 	}()
 
@@ -152,8 +152,8 @@ func (st *fileStorage) DownloadStorage() error {
 		return err
 	}
 	defer func() {
-		if er := file.Close(); er != nil {
-			log.Println(err)
+		if errFileClose := file.Close(); errFileClose != nil {
+			log.Println(errFileClose)
 		}
 	}()
 

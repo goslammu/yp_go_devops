@@ -77,8 +77,8 @@ func (agn *agent) getStorageBatch() ([]byte, error) {
 	}
 
 	for i := range allMetrics {
-		if er := allMetrics[i].UpdateHash(agn.config.HashKey); er != nil {
-			return nil, er
+		if errUpdateHash := allMetrics[i].UpdateHash(agn.config.HashKey); errUpdateHash != nil {
+			return nil, errUpdateHash
 		}
 	}
 	mj, err := json.Marshal(allMetrics)

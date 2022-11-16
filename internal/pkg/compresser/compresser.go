@@ -30,8 +30,8 @@ func Compresser(handler http.Handler) http.Handler {
 			}
 
 			defer func() {
-				if er := gzipReader.Close(); er != nil {
-					log.Println(er.Error())
+				if errReaderClose := gzipReader.Close(); errReaderClose != nil {
+					log.Println(errReaderClose.Error())
 				}
 			}()
 
@@ -51,8 +51,8 @@ func Compresser(handler http.Handler) http.Handler {
 		}
 
 		defer func() {
-			if er := gzipWriter.Close(); er != nil {
-				log.Println(er.Error())
+			if errWriterClose := gzipWriter.Close(); errWriterClose != nil {
+				log.Println(errWriterClose.Error())
 			}
 		}()
 

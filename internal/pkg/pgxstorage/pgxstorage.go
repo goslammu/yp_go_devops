@@ -116,8 +116,8 @@ func (st *pgxStorage) GetBatch() ([]*metric.Metric, error) {
 		return nil, err
 	}
 	defer func() {
-		if er := rows.Close(); er != nil {
-			log.Println(err)
+		if errRowsClose := rows.Close(); errRowsClose != nil {
+			log.Println(errRowsClose)
 		}
 	}()
 
@@ -164,8 +164,8 @@ func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
 
 	defer func() {
 		if !success {
-			if er := tx.Rollback(); er != nil {
-				log.Println(er.Error())
+			if errRollback := tx.Rollback(); errRollback != nil {
+				log.Println(errRollback.Error())
 				return
 			}
 		}
@@ -194,8 +194,8 @@ func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
 		return err
 	}
 
-	if er := txStUpdateMetric.Close(); er != nil {
-		return er
+	if errTxClose := txStUpdateMetric.Close(); errTxClose != nil {
+		return errTxClose
 	}
 
 	success = true

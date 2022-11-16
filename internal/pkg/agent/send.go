@@ -26,8 +26,8 @@ func (agn *agent) sendMetric(name string) error {
 	if err != nil {
 		return err
 	}
-	if er := m.UpdateHash(agn.config.HashKey); er != nil {
-		return er
+	if erUpdateHash := m.UpdateHash(agn.config.HashKey); erUpdateHash != nil {
+		return erUpdateHash
 	}
 
 	switch agn.config.ContentType {
@@ -43,9 +43,9 @@ func (agn *agent) sendMetric(name string) error {
 		url = agn.config.ServerAddr + "/update/" + m.MType + "/" + m.ID + "/" + val
 		body = nil
 	case JSONCT:
-		tmpBody, er := json.Marshal(m)
-		if er != nil {
-			return er
+		tmpBody, errMarshal := json.Marshal(m)
+		if errMarshal != nil {
+			return errMarshal
 		}
 		url = agn.config.ServerAddr + "/update/"
 		body = tmpBody
@@ -57,8 +57,8 @@ func (agn *agent) sendMetric(name string) error {
 		return err
 	}
 	defer func() {
-		if er := res.Body.Close(); er != nil {
-			log.Println(err)
+		if errBodyClose := res.Body.Close(); errBodyClose != nil {
+			log.Println(errBodyClose)
 		}
 	}()
 
@@ -84,8 +84,8 @@ func (agn *agent) sendBatch() error {
 		return err
 	}
 	defer func() {
-		if er := res.Body.Close(); er != nil {
-			log.Println(err)
+		if errCloseBody := res.Body.Close(); errCloseBody != nil {
+			log.Println(errCloseBody)
 		}
 	}()
 
