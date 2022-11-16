@@ -3,7 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -38,7 +38,7 @@ func (agn *agent) sendMetric(name string) error {
 		case Counter:
 			val = strconv.FormatInt(*m.Delta, 10)
 		default:
-			return errors.New("cannot send: unsupported metric type <" + m.MType + ">")
+			return fmt.Errorf("cannot send: unsupported metric type <%v>", m.MType)
 		}
 		url = agn.config.ServerAddr + "/update/" + m.MType + "/" + m.ID + "/" + val
 		body = nil
@@ -50,7 +50,7 @@ func (agn *agent) sendMetric(name string) error {
 		url = agn.config.ServerAddr + "/update/"
 		body = tmpBody
 	default:
-		return errors.New("cannot send: unsupported content type <" + agn.config.ContentType + ">")
+		return fmt.Errorf("cannot send: unsupported content type <%v>", agn.config.ContentType)
 	}
 	res, err := customPostRequest(HTTPStr+url, agn.config.ContentType, m.Hash, bytes.NewBuffer(body))
 	if err != nil {

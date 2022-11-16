@@ -2,7 +2,7 @@ package agent
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"math/rand"
 	"reflect"
 	"runtime"
@@ -62,11 +62,11 @@ func (agn *agent) getCustomMetricValue(name string) (float64, error) {
 			return 0, err
 		}
 		if int(num) > len(procUsage) {
-			return 0, errors.New("cannot get <" + name + ">: core number error")
+			return 0, fmt.Errorf("cannot get <%v>: core number error", name)
 		}
 		return procUsage[num-1], nil
 	}
-	return 0, errors.New("cannot get: unsupported metric <" + name + ">")
+	return 0, fmt.Errorf("cannot get: unsupported metric <%v>", name)
 }
 
 // Gives a batch of all storaged metrics in json format.
@@ -86,7 +86,7 @@ func (agn *agent) getStorageBatch() ([]byte, error) {
 		return nil, err
 	}
 	if reflect.DeepEqual(mj, []byte("[]")) {
-		return nil, errors.New("cannot get storage batch: storage is empty")
+		return nil, fmt.Errorf("cannot get storage batch: storage is empty")
 	}
 	return mj, nil
 }

@@ -46,13 +46,13 @@ const (
 // Checks connection from server to storage.
 func (srv *server) handlerCheckConnection(w http.ResponseWriter, r *http.Request) {
 	if err := srv.storage.AccessCheck(); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write([]byte(storageIsAvailable)); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -64,25 +64,25 @@ func (srv *server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
 
 	mj, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.Unmarshal(mj, &batch); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	for i := range batch {
 		if batch[i].Hash == "" {
-			log.Println(errInvalidFormat.Error())
+			log.Println(errInvalidFormat)
 			http.Error(w, errInvalidFormat.Error(), http.StatusBadRequest)
 			return
 		}
 		if _, err := srv.checkHash(batch[i]); err != nil {
-			log.Println(err.Error())
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -90,7 +90,7 @@ func (srv *server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := srv.storage.UpdateBatch(batch); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -104,14 +104,14 @@ func (srv *server) handlerUpdateBatch(w http.ResponseWriter, r *http.Request) {
 func (srv *server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	mj, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	m := metric.Metric{}
 	if err := json.Unmarshal(mj, &m); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -120,7 +120,7 @@ func (srv *server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 		resHash, err := srv.checkHash(&m)
 		w.Header().Set("Hash", resHash)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -128,13 +128,13 @@ func (srv *server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	m.Hash = ""
 
 	if err := checkTypeSupport(m.MType); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotImplemented)
 		return
 	}
 
 	if err := srv.storage.UpdateMetric(&m); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -148,7 +148,7 @@ func (srv *server) handlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 func (srv *server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	if err := checkTypeSupport(mType); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotImplemented)
 		return
 	}
@@ -164,7 +164,7 @@ func (srv *server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 		mDelta, err = strconv.ParseInt(mVal, 10, 64)
 	}
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -177,7 +177,7 @@ func (srv *server) handlerUpdateDirect(w http.ResponseWriter, r *http.Request) {
 		Value: &mValue,
 		Delta: &mDelta,
 	}); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -192,14 +192,14 @@ func (srv *server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	t, err := template.New("").Parse(templateHandlerGetAll)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	allMetrics, err := srv.storage.GetBatch()
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -209,7 +209,7 @@ func (srv *server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if errExecute := t.Execute(w, allMetrics); errExecute != nil {
-		log.Println(errExecute.Error())
+		log.Println(errExecute)
 		http.Error(w, errExecute.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -219,27 +219,27 @@ func (srv *server) handlerGetAll(w http.ResponseWriter, r *http.Request) {
 func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) {
 	mjReq, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	mReq := metric.Metric{}
 	if errUnmarshal := json.Unmarshal(mjReq, &mReq); errUnmarshal != nil {
-		log.Println(errUnmarshal.Error())
+		log.Println(errUnmarshal)
 		http.Error(w, errUnmarshal.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if errCheckType := checkTypeSupport(mReq.MType); errCheckType != nil {
-		log.Println(errCheckType.Error())
+		log.Println(errCheckType)
 		http.Error(w, errCheckType.Error(), http.StatusNotImplemented)
 		return
 	}
 
 	mRes, err := srv.storage.GetMetric(mReq.ID)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -249,14 +249,14 @@ func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if errUpdateHash := mRes.UpdateHash(srv.config.HashKey); errUpdateHash != nil {
-		log.Println(errUpdateHash.Error())
+		log.Println(errUpdateHash)
 		http.Error(w, errUpdateHash.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	mjRes, err := json.Marshal(mRes)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -264,7 +264,7 @@ func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", JSONCT)
 
 	if _, errWrite := w.Write(mjRes); errWrite != nil {
-		log.Println(errWrite.Error())
+		log.Println(errWrite)
 		http.Error(w, errWrite.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -274,7 +274,7 @@ func (srv *server) handlerGetMetricJSON(w http.ResponseWriter, r *http.Request) 
 func (srv *server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	if err := checkTypeSupport(mType); err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotImplemented)
 		return
 	}
@@ -282,13 +282,13 @@ func (srv *server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
 	mName := chi.URLParam(r, "name")
 	m, err := srv.storage.GetMetric(mName)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	if m.MType != mType {
 		errWrongType := errors.New("cannot get: metric <" + mName + "> is not <" + mType + ">")
-		log.Println(errWrongType.Error())
+		log.Println(errWrongType)
 		http.Error(w, errWrongType.Error(), http.StatusNotFound)
 		return
 	}
@@ -300,7 +300,7 @@ func (srv *server) handlerGetMetric(w http.ResponseWriter, r *http.Request) {
 		_, err = w.Write([]byte(strconv.FormatInt(*m.Delta, 10)))
 	}
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

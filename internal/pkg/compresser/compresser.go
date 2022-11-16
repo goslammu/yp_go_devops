@@ -24,14 +24,14 @@ func Compresser(handler http.Handler) http.Handler {
 		if r.Header.Get("Content-Encoding") == "gzip" {
 			gzipReader, err := gzip.NewReader(r.Body)
 			if err != nil {
-				log.Println(err.Error())
+				log.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
 			defer func() {
 				if errReaderClose := gzipReader.Close(); errReaderClose != nil {
-					log.Println(errReaderClose.Error())
+					log.Println(errReaderClose)
 				}
 			}()
 
@@ -45,14 +45,14 @@ func Compresser(handler http.Handler) http.Handler {
 
 		gzipWriter, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		defer func() {
 			if errWriterClose := gzipWriter.Close(); errWriterClose != nil {
-				log.Println(errWriterClose.Error())
+				log.Println(errWriterClose)
 			}
 		}()
 

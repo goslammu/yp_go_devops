@@ -165,7 +165,7 @@ func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
 	defer func() {
 		if !success {
 			if errRollback := tx.Rollback(); errRollback != nil {
-				log.Println(errRollback.Error())
+				log.Println(errRollback)
 				return
 			}
 		}
