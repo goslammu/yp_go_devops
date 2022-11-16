@@ -41,7 +41,7 @@ func Test_New(t *testing.T) {
 		ms, err = New(config.DBAddress, false)
 		if err != nil {
 			t.Logf("unable to connect to postgre: %v\n", err)
-			t.FailNow()
+			t.SkipNow()
 		}
 		assert.NotNil(t, ms)
 
@@ -62,7 +62,7 @@ func Test_New(t *testing.T) {
 		ms, err = New(config.DBAddress, true)
 		if err != nil {
 			t.Logf("unable to connect to postgre: %v\n", err)
-			t.FailNow()
+			t.SkipNow()
 		}
 		assert.NotNil(t, ms)
 
@@ -81,7 +81,7 @@ func Test_Close(t *testing.T) {
 	ms, err := New(config.DBAddress, false)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.FailNow()
+		t.SkipNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -96,7 +96,7 @@ func Test_AccessCheck(t *testing.T) {
 	ms, err := New(config.DBAddress, false)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.FailNow()
+		t.SkipNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -116,7 +116,7 @@ func Test_GetMetric(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.FailNow()
+		t.SkipNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -166,7 +166,7 @@ func Test_GetBatch(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.FailNow()
+		t.SkipNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -206,7 +206,7 @@ func Test_UpdateMetric(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.FailNow()
+		t.SkipNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -262,17 +262,18 @@ func Test_UpdateMetric(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			assert.ErrorIs(t, ms.UpdateMetric(tt.Input), tt.ExpectedError)
 
-			if tt.Name != "empty id" && tt.Name != "nil input" {
-				m := metric.Metric{}
-
-				row := ms.DB.QueryRow(stGetMetric, tt.Input.ID)
-				err = row.Scan(&m.ID, &m.MType, &m.Value, &m.Delta)
-				assert.NoError(t, err)
-				assert.Equal(t, tt.Input.ID, m.ID)
-
-				assert.Equal(t, tt.ExpectedDelta, *m.Delta)
-				assert.Equal(t, tt.ExpectedValue, *m.Value)
+			if tt.Name == "empty id" || tt.Name == "nil input" {
+				t.Skip()
 			}
+			m := metric.Metric{}
+
+			row := ms.DB.QueryRow(stGetMetric, tt.Input.ID)
+			err = row.Scan(&m.ID, &m.MType, &m.Value, &m.Delta)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.Input.ID, m.ID)
+
+			assert.Equal(t, tt.ExpectedDelta, *m.Delta)
+			assert.Equal(t, tt.ExpectedValue, *m.Value)
 		})
 	}
 
@@ -283,7 +284,7 @@ func Test_UpdateBatch(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.FailNow()
+		t.SkipNow()
 	}
 	assert.NotNil(t, ms)
 
