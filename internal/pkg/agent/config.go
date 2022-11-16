@@ -49,9 +49,5 @@ func (cf *agentConfig) GetExternalConfig() error {
 	flag.StringVar(&cf.HashKey, "k", cf.HashKey, "hash key")
 	flag.Parse()
 
-	if err := env.Parse(cf); err != nil {
-		return err
-	}
-
-	return nil
+	return env.Parse(cf)
 }

@@ -56,9 +56,5 @@ func (cf *serverConfig) SetByExternal() error {
 	flag.StringVar(&cf.DatabaseAddress, "d", cf.DatabaseAddress, "database address")
 	flag.Parse()
 
-	if err := env.Parse(cf); err != nil {
-		return err
-	}
-
-	return nil
+	return env.Parse(cf)
 }

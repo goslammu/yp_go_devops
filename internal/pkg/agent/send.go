@@ -110,9 +110,6 @@ func customPostRequest(url, contentType, hash string, body io.Reader) (resp *htt
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
-	client, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
+
+	return http.DefaultClient.Do(req)
 }

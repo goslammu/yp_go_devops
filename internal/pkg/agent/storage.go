@@ -107,11 +107,8 @@ func (agn *agent) resetCounters() error {
 
 // Resets individual counter.
 func (agn *agent) resetCounter(name string) error {
-	if err := agn.storage.UpdateMetric(&metric.Metric{
+	return agn.storage.UpdateMetric(&metric.Metric{
 		ID:    name,
 		MType: Counter,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
