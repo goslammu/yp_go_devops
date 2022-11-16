@@ -2,14 +2,15 @@ package pgxstorage
 
 import (
 	"database/sql"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/dcaiman/YP_GO/internal/pkg/metric"
 )
 
-const (
-	tabname = `metrics`
+var (
+	migrationsPath = "./migrations/metrics"
 
 	schema = `
 	(
@@ -18,6 +19,10 @@ const (
 		mval DOUBLE PRECISION,
 		mdel BIGINT
 	)`
+)
+
+const (
+	tabname = `metrics`
 
 	stUpdateMetric = `
 	INSERT INTO ` + tabname + `
@@ -37,7 +42,7 @@ const (
 	FROM ` + tabname
 
 	stCreateTableIfNotExists = `
-	CREATE TABLE IF NOT EXISTS ` + tabname + ` ` + schema
+	CREATE TABLE IF NOT EXISTS `
 
 	stDropTableIfExisis = `
 	DROP TABLE IF EXISTS ` + tabname
@@ -64,7 +69,17 @@ func New(dbAddr string, drop bool) (*pgxStorage, error) {
 			return nil, er
 		}
 	}
-	_, err = ms.DB.Exec(stCreateTableIfNotExists)
+
+	migratedSchema, err := os.ReadFile(migrationsPath)
+	if err != nil {
+		log.Println("unable to get migrations, use standard database scheme")
+	} else {
+		schema = string(migratedSchema)
+	}
+
+	migrations := tabname + " " + schema
+
+	_, err = ms.DB.Exec(stCreateTableIfNotExists + migrations)
 	if err != nil {
 		return nil, err
 	}
