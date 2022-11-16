@@ -21,21 +21,30 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	for _, file := range pass.Files {
-		if file.Name.Name == "main" {
-			ast.Inspect(file, func(node ast.Node) bool {
-				if node, ok := node.(*ast.CallExpr); ok {
-					if fun, ok := node.Fun.(*ast.SelectorExpr); ok {
-						if expr, ok := fun.X.(*ast.Ident); ok {
-							if expr.Name == "os" && fun.Sel.Name == "Exit" {
-								pass.Reportf(fun.Pos(), "direct os.Exit() call in main()")
-							}
-						}
-					}
-				}
-
-				return true
-			})
+		if file.Name.Name != "main" {
+			continue
 		}
+
+		ast.Inspect(file, func(node ast.Node) bool {
+			n, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+
+			f, ok := n.Fun.(*ast.SelectorExpr)
+			if !ok || f.Sel.Name != "Exit" {
+				return true
+			}
+
+			e, ok := f.X.(*ast.Ident)
+			if !ok || e.Name != "os" {
+				return true
+			}
+
+			pass.Reportf(f.Pos(), "direct os.Exit() call in main()")
+
+			return true
+		})
 	}
 
 	return nil, nil
