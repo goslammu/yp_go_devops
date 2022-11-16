@@ -41,7 +41,7 @@ func Test_New(t *testing.T) {
 		ms, err = New(config.DBAddress, false)
 		if err != nil {
 			t.Logf("unable to connect to postgre: %v\n", err)
-			t.SkipNow()
+			t.FailNow()
 		}
 		assert.NotNil(t, ms)
 
@@ -62,7 +62,7 @@ func Test_New(t *testing.T) {
 		ms, err = New(config.DBAddress, true)
 		if err != nil {
 			t.Logf("unable to connect to postgre: %v\n", err)
-			t.SkipNow()
+			t.FailNow()
 		}
 		assert.NotNil(t, ms)
 
@@ -81,7 +81,7 @@ func Test_Close(t *testing.T) {
 	ms, err := New(config.DBAddress, false)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.SkipNow()
+		t.FailNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -96,7 +96,7 @@ func Test_AccessCheck(t *testing.T) {
 	ms, err := New(config.DBAddress, false)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.SkipNow()
+		t.FailNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -116,7 +116,7 @@ func Test_GetMetric(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.SkipNow()
+		t.FailNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -166,7 +166,7 @@ func Test_GetBatch(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.SkipNow()
+		t.FailNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -206,7 +206,7 @@ func Test_UpdateMetric(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.SkipNow()
+		t.FailNow()
 	}
 	assert.NotNil(t, ms)
 
@@ -283,7 +283,7 @@ func Test_UpdateBatch(t *testing.T) {
 	ms, err := New(config.DBAddress, true)
 	if err != nil {
 		t.Logf("unable to connect to postgre: %v\n", err)
-		t.SkipNow()
+		t.FailNow()
 	}
 	assert.NotNil(t, ms)
 
