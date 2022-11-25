@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 
@@ -14,7 +13,8 @@ import (
 const (
 	TextPlainCT = "text/plain"
 	JSONCT      = "application/json"
-	HTTPStr     = "http://"
+	HTTP        = "http://"
+	HTTPS       = "https://"
 )
 
 // Sends individual metric to the server.
@@ -26,8 +26,8 @@ func (agn *agent) sendMetric(name string) error {
 	if err != nil {
 		return err
 	}
-	if erUpdateHash := m.UpdateHash(agn.config.HashKey); erUpdateHash != nil {
-		return erUpdateHash
+	if errUpdateHash := m.UpdateHash(agn.config.HashKey); errUpdateHash != nil {
+		return errUpdateHash
 	}
 
 	switch agn.config.ContentType {
@@ -40,19 +40,19 @@ func (agn *agent) sendMetric(name string) error {
 		default:
 			return fmt.Errorf("cannot send: unsupported metric type <%v>", m.MType)
 		}
-		url = agn.config.ServerAddr + "/update/" + m.MType + "/" + m.ID + "/" + val
+		url = agn.config.ServerAddress + "/update/" + m.MType + "/" + m.ID + "/" + val
 		body = nil
 	case JSONCT:
 		tmpBody, errMarshal := json.Marshal(m)
 		if errMarshal != nil {
 			return errMarshal
 		}
-		url = agn.config.ServerAddr + "/update/"
+		url = agn.config.ServerAddress + "/update/"
 		body = tmpBody
 	default:
 		return fmt.Errorf("cannot send: unsupported content type <%v>", agn.config.ContentType)
 	}
-	res, err := customPostRequest(HTTPStr+url, agn.config.ContentType, m.Hash, bytes.NewBuffer(body))
+	res, err := agn.postRequest(url, m.Hash, body)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (agn *agent) sendBatch() error {
 	if err != nil {
 		return err
 	}
-	res, err := customPostRequest(HTTPStr+agn.config.ServerAddr+"/updates/", JSONCT, "", bytes.NewBuffer(body))
+	res, err := agn.postRequest(agn.config.ServerAddress+"/updates/", "", body)
 	if err != nil {
 		return err
 	}
@@ -99,17 +99,25 @@ func (agn *agent) sendBatch() error {
 }
 
 // Unified POST-request for all sending methods.
-func customPostRequest(url, contentType, hash string, body io.Reader) (resp *http.Response, err error) {
-	req, err := http.NewRequest("POST", url, body)
+func (agn *agent) postRequest(url, hash string, body []byte) (*http.Response, error) {
+	modePrefix := ""
+
+	if agn.config.EnableHTTPS {
+		modePrefix = HTTPS
+	} else {
+		modePrefix = HTTP
+	}
+
+	req, err := http.NewRequest("POST", modePrefix+url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("Content-Type", agn.config.ContentType)
+
 	if hash != "" {
 		req.Header.Set("Hash", hash)
 	}
-	if contentType != "" {
-		req.Header.Set("Content-Type", contentType)
-	}
 
-	return http.DefaultClient.Do(req)
+	return agn.client.Do(req)
 }

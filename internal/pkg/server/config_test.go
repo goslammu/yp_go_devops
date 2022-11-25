@@ -12,9 +12,11 @@ func Test_serverConfiguration(t *testing.T) {
 		"",
 		"./tmp/metricStorage.json",
 		"key",
+		"privateCryptoKey",
 		0,
 		true,
 		true,
+		false,
 	}
 
 	actualConfig := NewConfig(
@@ -22,9 +24,11 @@ func Test_serverConfiguration(t *testing.T) {
 		"",
 		"./tmp/metricStorage.json",
 		"key",
+		"privateCryptoKey",
 		0,
 		true,
 		true,
+		false,
 	)
 
 	t.Run("config creation", func(t *testing.T) {

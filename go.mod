@@ -1,4 +1,4 @@
-module github.com/dcaiman/YP_GO
+module github.com/goslammu/yp_go_devops
 
 go 1.18
 
@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/kisielk/errcheck v1.6.2
 	github.com/shirou/gopsutil/v3 v3.22.6
+	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.7.5
 	github.com/timakin/bodyclose v0.0.0-20210704033933-f49887972144
 	honnef.co/go/tools v0.3.3
@@ -16,7 +17,6 @@ require (
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/gostaticanalysis/analysisutil v0.0.0-20190318220348-4088753ea4d3 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220218215828-6cf2b201936e // indirect
 	golang.org/x/mod v0.7.0 // indirect
 )

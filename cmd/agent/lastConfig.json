@@ -1,0 +1,1 @@
+{"address":"127.0.0.1:8080","key":"key","crypto_key":"./../server/certs/cert.pem","ContentType":"application/json","SendByBatch":true,"poll_interval":1000000000,"report_interval":3000000000,"EnableHTTPS":false}

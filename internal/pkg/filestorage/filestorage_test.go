@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/dcaiman/YP_GO/internal/pkg/metric"
+	"github.com/goslammu/yp_go_devops/internal/pkg/metric"
 	"github.com/stretchr/testify/assert"
 )
 

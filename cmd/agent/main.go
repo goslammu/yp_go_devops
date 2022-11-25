@@ -7,9 +7,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/goslammu/yp_go_devops/internal/pkg/agent"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/dcaiman/YP_GO/internal/pkg/agent"
 )
 
 var (
@@ -73,14 +72,16 @@ func main() {
 	config := agent.NewConfig(
 		"127.0.0.1:8080",
 		"key",
+		"./../server/certs/cert.pem",
 		agent.JSONCT,
-		true,
-		1000*time.Millisecond,
-		3000*time.Millisecond,
+		agent.SendBatchOn,
+		agent.ModeHTTP,
+		time.Second,
+		3*time.Second,
 	)
 
-	if err := config.GetExternalConfig(); err != nil {
-		panic(err)
+	if err := config.SetByExternal(); err != nil {
+		log.Println(err)
 	}
 
 	agn := agent.NewAgent(config)
@@ -89,7 +90,11 @@ func main() {
 	agn.Counters = counters
 	agn.CustomGauges = customGauges
 
+	if err := agn.Init(); err != nil {
+		log.Println(err)
+	}
+
 	if err := agn.Run(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }

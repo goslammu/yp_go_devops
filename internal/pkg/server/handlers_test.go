@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dcaiman/YP_GO/internal/pkg/filestorage"
-	"github.com/dcaiman/YP_GO/internal/pkg/metric"
+	"github.com/goslammu/yp_go_devops/internal/pkg/filestorage"
+	"github.com/goslammu/yp_go_devops/internal/pkg/metric"
 	"github.com/stretchr/testify/assert"
 )
 

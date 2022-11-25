@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/dcaiman/YP_GO/internal/pkg/metric"
+	"github.com/goslammu/yp_go_devops/internal/pkg/metric"
 )
 
 var (

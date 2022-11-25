@@ -1,0 +1,1 @@
+{"address":"127.0.0.1:8080","database_dsn":"","store_file":"./tmp/metricStorage.json","key":"key","crypto_key":"./certs/","store_interval":1000000000,"restore":true}

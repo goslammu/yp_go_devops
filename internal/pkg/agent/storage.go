@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dcaiman/YP_GO/internal/pkg/metric"
+	"github.com/goslammu/yp_go_devops/internal/pkg/metric"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 )
