@@ -47,6 +47,7 @@ func Test_serverConfiguration(t *testing.T) {
 
 	t.Run("server init with bad config", func(t *testing.T) {
 		assert.ErrorIs(t, srv.Init(), errStorageNotDefined)
+		assert.False(t, srv.initialized)
 	})
 
 	srv.config.FileDestination = "./tmp/metricStorage.json"

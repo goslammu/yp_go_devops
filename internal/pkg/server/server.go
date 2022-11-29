@@ -205,9 +205,10 @@ func (srv *server) initStorage() error {
 			}()
 
 		} else {
+			srv.uploadSig = make(chan struct{})
 
 			go func() {
-				srv.uploadSig = make(chan struct{})
+
 				log.Println("---------- UPSIG init", srv.uploadSig == nil)
 
 				for {
