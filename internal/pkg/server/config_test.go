@@ -3,7 +3,6 @@ package server
 import (
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,23 +51,30 @@ func Test_serverConfiguration(t *testing.T) {
 
 	srv.config.FileDestination = "./tmp/metricStorage.json"
 
-	t.Run("server init with file storage", func(t *testing.T) {
+	t.Run("server init with file storage and shutdown", func(t *testing.T) {
 		assert.NoError(t, srv.Init())
 		assert.True(t, srv.initialized)
-	})
 
-	srv.turnedOn = true
+		srv.turnedOn = true
 
-	t.Run("server shutdown actions check", func(t *testing.T) {
+		ok := false
+
+		select {
+		case _, ok = <-srv.uploadSig:
+		default:
+			ok = true
+		}
+
+		assert.True(t, ok)
+
 		assert.NoError(t, srv.Shutdown())
-
-		ok := true
 
 		select {
 		case _, ok = <-srv.uploadSig:
 		default:
 		}
-		log.Println("---------- UPSIG ", srv.uploadSig == nil)
+
 		assert.False(t, ok)
+
 	})
 }
