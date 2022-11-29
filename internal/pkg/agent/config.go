@@ -33,7 +33,7 @@ const (
 	ModeHTTP  = false
 )
 
-// Config struct contains all agent settings required for run.
+// AgentConfing struct contains all agent settings required for run.
 type agentConfig struct {
 	// Destination of the metrics storaging server.
 	ServerAddress string `env:"ADDRESS" json:"address"`
@@ -56,11 +56,15 @@ type agentConfig struct {
 	// Time interval between sendings metrics to the server.
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" json:"report_interval"`
 
+	// Defines if use HTTP or HTTPS. If CertDestination is not defined, turns to false.
 	EnableHTTPS bool
 }
 
 // Agentconfig constructor.
-func NewConfig(serverAddress, hashKey, certDestination, contentType string, sendByBatch, enableHTTPS bool, pollInterval, reportInterval time.Duration) agentConfig {
+func NewConfig(serverAddress, hashKey, certDestination, contentType string,
+	sendByBatch, enableHTTPS bool,
+	pollInterval, reportInterval time.Duration) agentConfig {
+
 	return agentConfig{
 		ServerAddress:   serverAddress,
 		HashKey:         hashKey,
@@ -84,15 +88,15 @@ func (cf *agentConfig) SetByExternal() error {
 	var pollInterval,
 		reportInterval time.Duration
 
-	flag.StringVar(&serverAddress, "a", serverAddress, "server address")
-	flag.StringVar(&hashKey, "k", hashKey, "hash key")
-	flag.StringVar(&certDestination, "crypto-key", certDestination, "cert data dest")
+	flag.StringVar(&serverAddress, serverAddressFlag, serverAddress, "server address")
+	flag.StringVar(&hashKey, hashKeyFlag, hashKey, "hash key")
+	flag.StringVar(&certDestination, certDestinationFlag, certDestination, "cert data destination")
 
 	flag.StringVar(&configFilePath, configFileDestFlag, configFilePath, "config file destination")
 	flag.StringVar(&configFilePath, configFileDestFlagShort, configFilePath, "config file destination")
 
-	flag.DurationVar(&pollInterval, "p", pollInterval, "poll interval")
-	flag.DurationVar(&reportInterval, "r", reportInterval, "report interval")
+	flag.DurationVar(&pollInterval, pollIntervalFlag, pollInterval, "poll interval")
+	flag.DurationVar(&reportInterval, reportIntervalFlag, reportInterval, "report interval")
 
 	flag.Parse()
 
@@ -149,10 +153,10 @@ func (cf *agentConfig) setFromFile(path string) error {
 	return json.Unmarshal(bj, cf)
 }
 
-func isFlagSet(name string) (isSet bool) {
+func isFlagSet(name string) (set bool) {
 	flag.Visit(func(f *flag.Flag) {
 		if f.Name == name {
-			isSet = true
+			set = true
 		}
 	})
 

@@ -17,18 +17,8 @@ var (
 	buildCommit  string = "N/A"
 )
 
-func main() {
-	go func() {
-		if err := http.ListenAndServe(":7070", nil); err != nil {
-			panic(err)
-		}
-	}()
-
-	log.Println("Build version: ", buildVersion)
-	log.Println("Build date: ", buildDate)
-	log.Println("Build commit: ", buildCommit)
-
-	runtimeGauges := []string{
+var (
+	runtimeGauges = []string{
 		"Alloc",
 		"BuckHashSys",
 		"Frees",
@@ -57,14 +47,29 @@ func main() {
 		"Sys",
 		"TotalAlloc",
 	}
-	customGauges := []string{
+
+	customGauges = []string{
 		agent.RandomValue,
 		agent.TotalMemory,
 		agent.FreeMemory,
 	}
-	counters := []string{
+
+	counters = []string{
 		"PollCount",
 	}
+)
+
+func main() {
+	go func() {
+		if err := http.ListenAndServe(":7070", nil); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	log.Println("Build version: ", buildVersion)
+	log.Println("Build date: ", buildDate)
+	log.Println("Build commit: ", buildCommit)
+
 	for i := 1; i <= runtime.NumCPU(); i++ {
 		customGauges = append(customGauges, agent.CPUutilization+fmt.Sprint(i))
 	}
@@ -73,7 +78,7 @@ func main() {
 		"127.0.0.1:8080",
 		"key",
 		"./../server/certs/cert.pem",
-		agent.JSONCT,
+		agent.ContentTypeJSON,
 		agent.SendBatchOn,
 		agent.ModeHTTP,
 		time.Second,

@@ -2,12 +2,12 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/goslammu/yp_go_devops/internal/pkg/server"
 	log "github.com/sirupsen/logrus"
 
 	_ "net/http/pprof"
-	"time"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 func main() {
 	go func() {
 		if err := http.ListenAndServe(":6060", nil); err != nil {
-			panic(err)
+			log.Println(err)
 		}
 	}()
 
@@ -33,14 +33,14 @@ func main() {
 		"./tmp/metricStorage.json",
 		"key",
 		"./certs/",
-		time.Second,
+		3*time.Second,
 		server.InitialDownloadOn,
 		server.DropDatabaseOff,
 		server.ModeHTTP,
 	)
 
 	if err := config.SetByExternal(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	srv := server.NewServer(config)
