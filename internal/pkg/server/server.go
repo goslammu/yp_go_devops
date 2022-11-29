@@ -144,7 +144,10 @@ func (srv *server) Shutdown() error {
 	}
 
 	if srv.uploadSig != nil {
+		log.Println("---------- CLOSE UPSIG")
 		close(srv.uploadSig)
+	} else {
+		log.Println("---------- UPSIG IS NIL")
 	}
 
 	if err := srv.storage.Close(); err != nil {

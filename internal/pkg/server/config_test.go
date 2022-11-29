@@ -3,6 +3,7 @@ package server
 import (
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +68,7 @@ func Test_serverConfiguration(t *testing.T) {
 		case _, ok = <-srv.uploadSig:
 		default:
 		}
-
+		log.Println("---------- UPSIG ", srv.uploadSig == nil)
 		assert.False(t, ok)
 	})
 }
