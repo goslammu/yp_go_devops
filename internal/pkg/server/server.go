@@ -186,7 +186,7 @@ func (srv *server) initStorage() error {
 				log.Println(err)
 			}
 		}
-
+		log.Println("---------- SI ", srv.config.StoreInterval)
 		if srv.config.StoreInterval != 0 {
 
 			go func() {
@@ -208,6 +208,7 @@ func (srv *server) initStorage() error {
 
 			go func() {
 				srv.uploadSig = make(chan struct{})
+				log.Println("---------- UPSIG init", srv.uploadSig == nil)
 
 				for {
 					select {
