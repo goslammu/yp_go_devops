@@ -104,6 +104,7 @@ func (srv *server) Run() error {
 				srv.config.CertDestination+certFileName,
 				srv.config.CertDestination+keyFileName); err != nil {
 				log.Println(err)
+
 				if srv.turnedOn {
 					if err := srv.Shutdown(); err != nil {
 						log.Println(err)
@@ -117,6 +118,7 @@ func (srv *server) Run() error {
 		go func() {
 			if err := srv.server.ListenAndServe(); err != nil {
 				log.Println(err)
+
 				if srv.turnedOn {
 					if err := srv.Shutdown(); err != nil {
 						log.Println(err)
