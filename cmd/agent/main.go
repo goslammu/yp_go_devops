@@ -7,9 +7,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/goslammu/yp_go_devops/internal/pkg/agent"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/dcaiman/YP_GO/internal/pkg/agent"
 )
 
 var (
@@ -18,18 +17,8 @@ var (
 	buildCommit  string = "N/A"
 )
 
-func main() {
-	go func() {
-		if err := http.ListenAndServe(":7070", nil); err != nil {
-			panic(err)
-		}
-	}()
-
-	log.Println("Build version: ", buildVersion)
-	log.Println("Build date: ", buildDate)
-	log.Println("Build commit: ", buildCommit)
-
-	runtimeGauges := []string{
+var (
+	runtimeGauges = []string{
 		"Alloc",
 		"BuckHashSys",
 		"Frees",
@@ -58,14 +47,29 @@ func main() {
 		"Sys",
 		"TotalAlloc",
 	}
-	customGauges := []string{
+
+	customGauges = []string{
 		agent.RandomValue,
 		agent.TotalMemory,
 		agent.FreeMemory,
 	}
-	counters := []string{
+
+	counters = []string{
 		"PollCount",
 	}
+)
+
+func main() {
+	go func() {
+		if err := http.ListenAndServe(":7070", nil); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	log.Println("Build version: ", buildVersion)
+	log.Println("Build date: ", buildDate)
+	log.Println("Build commit: ", buildCommit)
+
 	for i := 1; i <= runtime.NumCPU(); i++ {
 		customGauges = append(customGauges, agent.CPUutilization+fmt.Sprint(i))
 	}
@@ -73,14 +77,16 @@ func main() {
 	config := agent.NewConfig(
 		"127.0.0.1:8080",
 		"key",
-		agent.JSONCT,
-		true,
-		1000*time.Millisecond,
-		3000*time.Millisecond,
+		"./../server/certs/cert.pem",
+		agent.ContentTypeJSON,
+		agent.SendBatchOn,
+		agent.ModeHTTP,
+		time.Second,
+		3*time.Second,
 	)
 
-	if err := config.GetExternalConfig(); err != nil {
-		panic(err)
+	if err := config.SetByExternal(); err != nil {
+		log.Println(err)
 	}
 
 	agn := agent.NewAgent(config)
@@ -89,7 +95,11 @@ func main() {
 	agn.Counters = counters
 	agn.CustomGauges = customGauges
 
+	if err := agn.Init(); err != nil {
+		log.Println(err)
+	}
+
 	if err := agn.Run(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }

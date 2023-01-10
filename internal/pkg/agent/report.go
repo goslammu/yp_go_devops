@@ -10,29 +10,41 @@ import (
 // Sends metrics batch if SendBatch from Connfig is checked.
 // Otherwise sends every metric individually.
 func (agn *agent) report() {
-	reportTimer := time.NewTicker(agn.config.ReportInterval)
+	var reportFunc func()
 
-	for {
-		<-reportTimer.C
-		if agn.config.SendByBatch {
-			if err := agn.sendBatch(); err != nil {
+	if agn.config.SendByBatch {
+		reportFunc = func() {
+			if err := agn.sendBatchAsJSON(); err != nil {
 				log.Println(err)
 			}
-		} else {
+		}
+	} else {
+		reportFunc = func() {
 			agn.reportMetrics(agn.RuntimeGauges)
 			agn.reportMetrics(agn.CustomGauges)
 			agn.reportMetrics(agn.Counters)
+		}
+	}
+
+	reportTimer := time.NewTicker(agn.config.ReportInterval)
+
+	for {
+		select {
+		case <-reportTimer.C:
+			reportFunc()
+		case <-agn.shutdown:
+			return
 		}
 	}
 }
 
 // reportMetrics() sends listed metrics individually.
 func (agn *agent) reportMetrics(names []string) {
-	for i := range names {
-		go func(i int) {
-			if err := agn.sendMetric(names[i]); err != nil {
+	for _, v := range names {
+		go func(name string) {
+			if err := agn.sendMetric(name); err != nil {
 				log.Println(err)
 			}
-		}(i)
+		}(v)
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/caarlos0/env"
-	"github.com/dcaiman/YP_GO/internal/pkg/metric"
+	"github.com/goslammu/yp_go_devops/internal/pkg/metric"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/stretchr/testify/assert"
 )

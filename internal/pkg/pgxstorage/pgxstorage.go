@@ -2,18 +2,23 @@ package pgxstorage
 
 import (
 	"database/sql"
+	"errors"
 	"os"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/dcaiman/YP_GO/internal/pkg/metric"
+	"github.com/goslammu/yp_go_devops/internal/pkg/metric"
+)
+
+var (
+	errUnableToGetMigrations = errors.New("unable to get migrations, use standard database scheme")
 )
 
 var (
 	migrationsPath = "./migrations/metrics"
 
-	schema = `
-	(
+	migration = `
+	CREATE TABLE IF NOT EXISTS metrics (
 		mname CHARACTER VARYING PRIMARY KEY,
 		mtype CHARACTER VARYING,
 		mval DOUBLE PRECISION,
@@ -22,10 +27,8 @@ var (
 )
 
 const (
-	tabname = `metrics`
-
 	stUpdateMetric = `
-	INSERT INTO ` + tabname + `
+	INSERT INTO metrics
 	VALUES ($1, $2, $3, $4) 
 	ON CONFLICT (mname)
 	DO
@@ -34,18 +37,15 @@ const (
 
 	stGetMetric = `
 	SELECT * 
-	FROM ` + tabname + ` 
+	FROM metrics 
 	WHERE mname = $1`
 
 	stGetBatch = `
 	SELECT * 
-	FROM ` + tabname
-
-	stCreateTableIfNotExists = `
-	CREATE TABLE IF NOT EXISTS `
+	FROM metrics`
 
 	stDropTableIfExisis = `
-	DROP TABLE IF EXISTS ` + tabname
+	DROP TABLE IF EXISTS metrics`
 )
 
 // Realization of metrics storage based on Postgesql.
@@ -70,16 +70,14 @@ func New(dbAddr string, drop bool) (*pgxStorage, error) {
 		}
 	}
 
-	migratedSchema, err := os.ReadFile(migrationsPath)
+	migrationFromFile, err := os.ReadFile(migrationsPath)
 	if err != nil {
-		log.Println("unable to get migrations, use standard database scheme")
+		log.Println(errUnableToGetMigrations)
 	} else {
-		schema = string(migratedSchema)
+		migration = string(migrationFromFile)
 	}
 
-	migrations := tabname + " " + schema
-
-	_, err = ms.DB.Exec(stCreateTableIfNotExists + migrations)
+	_, err = ms.DB.Exec(migration)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +101,8 @@ func (st *pgxStorage) GetMetric(name string) (*metric.Metric, error) {
 		return nil, err
 	}
 	defer func() {
-		if er := rows.Close(); er != nil {
-			log.Println(err)
+		if errRowsClose := rows.Close(); errRowsClose != nil {
+			log.Println(errRowsClose)
 		}
 	}()
 
@@ -169,10 +167,10 @@ func (st *pgxStorage) UpdateMetric(m *metric.Metric) error {
 }
 
 // Updates metrics collected in input batch by valuable fields: overrides Values and increments Deltas.
-func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
+func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) (err error) {
 	tx, err := st.DB.Begin()
 	if err != nil {
-		return err
+		return
 	}
 
 	defer func() {
@@ -186,30 +184,34 @@ func (st *pgxStorage) UpdateBatch(batch []*metric.Metric) error {
 
 	txStUpdateMetric, err := tx.Prepare(stUpdateMetric)
 	if err != nil {
-		return err
+		return
 	}
 
 	for i := range batch {
 		if batch[i] == nil {
-			return metric.ErrCannotUpdateInvalidFormat
+			err = metric.ErrCannotUpdateInvalidFormat
+			return
 		}
 
 		if batch[i].ID == "" {
-			return metric.ErrCannotUpdateInvalidFormat
+			err = metric.ErrCannotUpdateInvalidFormat
+			return
 		}
 
-		if _, err := txStUpdateMetric.Exec(batch[i].ID, batch[i].MType, batch[i].Value, batch[i].Delta); err != nil {
-			return err
+		if _, err = txStUpdateMetric.Exec(batch[i].ID, batch[i].MType, batch[i].Value, batch[i].Delta); err != nil {
+			return
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
+	if errCommit := tx.Commit(); errCommit != nil {
+		err = errCommit
+		return
 	}
 
 	if errTxClose := txStUpdateMetric.Close(); errTxClose != nil {
-		return errTxClose
+		err = errTxClose
+		return
 	}
 
-	return nil
+	return
 }

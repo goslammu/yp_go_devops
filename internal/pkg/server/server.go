@@ -2,33 +2,52 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
+	"math/big"
+	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	log "github.com/sirupsen/logrus"
 
 	"time"
 
-	"github.com/dcaiman/YP_GO/internal/pkg/compresser"
-	"github.com/dcaiman/YP_GO/internal/pkg/filestorage"
-	"github.com/dcaiman/YP_GO/internal/pkg/metric"
-	"github.com/dcaiman/YP_GO/internal/pkg/pgxstorage"
 	"github.com/go-chi/chi"
+	"github.com/goslammu/yp_go_devops/internal/pkg/compresser"
+	"github.com/goslammu/yp_go_devops/internal/pkg/filestorage"
+	"github.com/goslammu/yp_go_devops/internal/pkg/metric"
+	"github.com/goslammu/yp_go_devops/internal/pkg/pgxstorage"
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 var (
-	errStorageNotDefined = errors.New("server storage is not defined")
-	errNotInitialized    = errors.New("server is not initialized")
+	errShutdownBySystemCall = errors.New("shutdown by system call")
+	errStorageNotDefined    = errors.New("server storage is not defined")
+	errNotInitialized       = errors.New("server is not initialized")
+	errAlreadyInitialized   = errors.New("server is already initialized")
+	errNotTurnedOn          = errors.New("server is not turned on")
+	errTurnedOn             = errors.New("server is turned on")
+)
+
+const (
+	certFileName = "cert.pem"
+	keyFileName  = "key.pem"
 )
 
 // server struct implements full value server for metric storaging and getting them from clients.
 type server struct {
-	storage     metric.MetricStorage
-	uploadSig   chan struct{}
-	s           *http.Server
-	config      serverConfig
-	initialized bool
+	storage               metric.MetricStorage
+	uploadSig, shutdown   chan struct{}
+	server                *http.Server
+	config                serverConfig
+	initialized, turnedOn bool
 }
 
 // Server constructor.
@@ -40,6 +59,14 @@ func NewServer(config serverConfig) *server {
 
 // Init initializes server components.
 func (srv *server) Init() error {
+	if srv.initialized {
+		return errAlreadyInitialized
+	}
+
+	if srv.turnedOn {
+		return errTurnedOn
+	}
+
 	if err := srv.initStorage(); err != nil {
 		return err
 	}
@@ -47,7 +74,11 @@ func (srv *server) Init() error {
 	if err := srv.initRouter(); err != nil {
 		return err
 	}
-
+	/*
+		if err := srv.UpdateCert(); err != nil {
+			return err
+		}
+	*/
 	srv.initialized = true
 
 	return nil
@@ -55,14 +86,37 @@ func (srv *server) Init() error {
 
 // Run immediatly turns server on.
 func (srv *server) Run() error {
-	if srv.initialized {
-		return srv.s.ListenAndServe()
+	if !srv.initialized {
+		return errNotInitialized
+
 	}
 
-	return errNotInitialized
+	if srv.turnedOn {
+		return errTurnedOn
+	}
+
+	srv.shutdown = make(chan struct{})
+
+	if srv.config.EnableHTTPS {
+		go srv.runHTTPS()
+	} else {
+		go srv.runHTTP()
+	}
+
+	srv.turnedOn = true
+
+	return srv.shutdownHandler()
 }
 
 func (srv *server) Shutdown() error {
+	if !srv.initialized {
+		return errNotInitialized
+	}
+
+	if !srv.turnedOn {
+		return errNotTurnedOn
+	}
+
 	if srv.uploadSig != nil {
 		close(srv.uploadSig)
 	}
@@ -71,71 +125,85 @@ func (srv *server) Shutdown() error {
 		return err
 	}
 
-	return srv.s.Shutdown(context.Background())
+	if err := srv.server.Shutdown(context.Background()); err != nil {
+		return err
+	}
+
+	srv.turnedOn = false
+
+	return nil
 }
 
 // initStorage initializes storage according to server configuration.
 func (srv *server) initStorage() error {
-	if srv.config.DatabaseAddress != "" {
-		dbstorage, err := pgxstorage.New(srv.config.DatabaseAddress, srv.config.InitialDatabaseDrop)
-		if err != nil {
-			return err
-		}
+	switch {
+	case srv.config.DatabaseAddress != "":
+		return srv.initDatabaseStorage()
+	case srv.config.FileDestination != "":
+		return srv.initFileStorage()
+	default:
+		return errStorageNotDefined
+	}
+}
 
-		srv.storage = dbstorage
-
-		srv.config.StoreInterval = -1
-
-		return nil
+func (srv *server) initDatabaseStorage() error {
+	dbstorage, err := pgxstorage.New(srv.config.DatabaseAddress, srv.config.InitialDatabaseDrop)
+	if err != nil {
+		return err
 	}
 
-	if srv.config.FileDestination != "" {
-		srv.uploadSig = make(chan struct{})
+	srv.storage = dbstorage
 
-		filestorage := filestorage.New(srv.config.FileDestination)
+	srv.config.StoreInterval = -1
 
-		if srv.config.InitialDownload {
-			if err := filestorage.DownloadStorage(); err != nil {
-				log.Println(err)
-			}
+	return nil
+}
+
+func (srv *server) initFileStorage() error {
+	filestorage := filestorage.New(srv.config.FileDestination)
+
+	if srv.config.InitialDownload {
+		if err := filestorage.DownloadStorage(); err != nil {
+			log.Println(err)
 		}
+	}
 
-		if srv.config.StoreInterval != 0 {
-			go func() {
-				uploadTimer := time.NewTicker(srv.config.StoreInterval)
+	if srv.config.StoreInterval != 0 {
+		go func() {
+			uploadTimer := time.NewTicker(srv.config.StoreInterval)
 
-				for {
-					select {
-					case <-uploadTimer.C:
-						if err := filestorage.UploadStorage(); err != nil {
-							log.Println(err)
-						}
-					case <-srv.uploadSig:
-						return
-					}
-				}
-			}()
-		} else {
-			go func(syncUploadSig chan struct{}) {
-				for {
-					_, ok := <-syncUploadSig
-					if !ok {
-						return
-					}
-
+			for {
+				select {
+				case <-uploadTimer.C:
 					if err := filestorage.UploadStorage(); err != nil {
 						log.Println(err)
 					}
+				case <-srv.shutdown:
+					return
 				}
-			}(srv.uploadSig)
-		}
+			}
+		}()
+	} else {
+		srv.uploadSig = make(chan struct{})
 
-		srv.storage = filestorage
+		go func() {
+			for {
+				select {
+				case <-srv.uploadSig:
+					if err := filestorage.UploadStorage(); err != nil {
+						log.Println(err)
+					}
+				case <-srv.shutdown:
+					return
+				}
+			}
+		}()
 
-		return nil
 	}
 
-	return errStorageNotDefined
+	srv.storage = filestorage
+
+	return nil
 }
 
 // initRouter initializes server main http-router.
@@ -162,10 +230,109 @@ func (srv *server) initRouter() error {
 		r.Get("/", srv.handlerCheckConnection)
 	})
 
-	srv.s = &http.Server{
+	srv.server = &http.Server{
 		Addr:    srv.config.ServerAddress,
 		Handler: mainRouter,
 	}
 
 	return nil
+}
+
+func (srv *server) UpdateCert() error {
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().Unix()),
+
+		Subject: pkix.Name{
+			Organization: []string{"orgName"},
+			Country:      []string{"ru"},
+		},
+
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().AddDate(10, 0, 0),
+
+		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:    x509.KeyUsageDigitalSignature,
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := x509.CreateCertificate(
+		rand.Reader,
+		cert,
+		cert,
+		&privateKey.PublicKey,
+		privateKey)
+	if err != nil {
+		return err
+	}
+
+	certPem := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+	if err := os.WriteFile(srv.config.CertDestination+certFileName, certPem, os.ModePerm); err != nil {
+		log.Println(srv.config.CertDestination + certFileName)
+		return err
+	}
+
+	privateKeyPem := pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+	if err := os.WriteFile(srv.config.CertDestination+"/"+keyFileName, privateKeyPem, os.ModePerm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (srv *server) shutdownHandler() error {
+	sysCall := make(chan os.Signal, 1)
+	signal.Notify(sysCall, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	select {
+	case <-sysCall:
+		close(sysCall)
+
+		if err := srv.Shutdown(); err != nil {
+			return err
+		}
+
+		return errShutdownBySystemCall
+	case <-srv.shutdown:
+		close(sysCall)
+
+		return nil
+	}
+}
+
+func (srv *server) runHTTPS() {
+	if err := srv.server.ListenAndServeTLS(
+		srv.config.CertDestination+certFileName,
+		srv.config.CertDestination+keyFileName); err != nil {
+		log.Println(err)
+
+		if srv.turnedOn {
+			if err := srv.Shutdown(); err != nil {
+				log.Println(err)
+			}
+		}
+	}
+}
+
+func (srv *server) runHTTP() {
+	if err := srv.server.ListenAndServe(); err != nil {
+		log.Println(err)
+
+		if srv.turnedOn {
+			if err := srv.Shutdown(); err != nil {
+				log.Println(err)
+			}
+		}
+	}
 }

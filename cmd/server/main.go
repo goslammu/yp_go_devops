@@ -2,13 +2,12 @@ package main
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/goslammu/yp_go_devops/internal/pkg/server"
 	log "github.com/sirupsen/logrus"
 
 	_ "net/http/pprof"
-	"time"
-
-	"github.com/dcaiman/YP_GO/internal/pkg/server"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 func main() {
 	go func() {
 		if err := http.ListenAndServe(":6060", nil); err != nil {
-			panic(err)
+			log.Println(err)
 		}
 	}()
 
@@ -30,30 +29,27 @@ func main() {
 
 	config := server.NewConfig(
 		"127.0.0.1:8080",
-		"", // "postgresql://postgres:1@127.0.0.1:5432",
+		"", //"postgresql://postgres:1@127.0.0.1:5432",
 		"./tmp/metricStorage.json",
 		"key",
-		time.Second,
-		true,
-		false,
+		"./certs/",
+		3*time.Second,
+		server.InitialDownloadOn,
+		server.DropDatabaseOff,
+		server.ModeHTTP,
 	)
 
 	if err := config.SetByExternal(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	srv := server.NewServer(config)
 
 	if err := srv.Init(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	if err := srv.Run(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
-
-	if err := srv.Shutdown(); err != nil {
-		panic(err)
-	}
-
 }
